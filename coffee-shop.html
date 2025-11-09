@@ -63,6 +63,13 @@
       <a class="pill" href="coffee-shop.html?role=developer">💻 Developers</a>
       <a class="pill" href="coffee-shop.html?role=tester">🧪 Testers</a>
       <a class="pill" href="coffee-shop.html?role=analyst">🧭 Business Analysts</a>
+      <a class="pill" href="coffee-shop.html?role=data_analyst">📊 Data Analyst</a>
+      <a class="pill" href="coffee-shop.html?role=data_engineer">📊 Data Engineer</a>
+      <a class="pill" href="coffee-shop.html?role=ml_engineer">📊 ML Engineer</a>
+      <a class="pill" href="coffee-shop.html?role=dev_ops">📊 Dev Ops/SRE</a>
+      <a class="pill" href="coffee-shop.html?role=cloud_engineer">📊 Cloud Engineer</a>
+      <a class="pill" href="coffee-shop.html?role=security">📊 Cyber Security</a>
+      <a class="pill" href="coffee-shop.html?role=pm">📊 Product Manager</a>
       <a class="pill" href="index.md">🏠 Home</a>
     </div>
   </div>
@@ -204,7 +211,182 @@ const DATA = {
         "Optional: CBAP/CSPO/Scrum Master certifications",
       ]
     }
+  },
+    data_analyst: {
+  label: "📊 Data Analyst",
+  tips: [
+    "Tell stories with numbers; charts are conversation starters.",
+    "Show decisions your analysis enabled, not just dashboards."
+  ],
+  sections: {
+    "The Essentials": [
+      "SQL joins/aggregations; comfort with window functions",
+      "Python + Pandas + NumPy; spreadsheets mastery",
+      "Visualization: Matplotlib or Plotly; basic data cleaning",
+      "Business metrics: conversion, churn, retention, cohort"
+    ],
+    "The Showcase": [
+      "2 dashboards (Power BI/Tableau/Looker) with a narrative",
+      "1 end-to-end analysis notebook with conclusions & next steps",
+      "Repo with clear README and data dictionary"
+    ],
+    "The Edge": [
+      "A/B testing basics; experiment design & pitfalls",
+      "ETL familiarity (dbt/Airflow basics) and data quality checks",
+      "Stakeholder update template: insight → impact → action"
+    ]
   }
+},
+data_engineer: {
+  label: "🛠️ Data Engineer",
+  tips: [
+    "Design for reliability: idempotent jobs, schema contracts.",
+    "Simple > clever; document assumptions."
+  ],
+  sections: {
+    "The Essentials": [
+      "Python for ETL; SQL performance & indexing",
+      "Batch vs streaming concepts; file formats (Parquet/Avro)",
+      "Cloud storage & compute basics (AWS/Azure/GCP)",
+      "Version control, CI for data, and logging/monitoring"
+    ],
+    "The Showcase": [
+      "Mini data pipeline: ingest → transform (dbt) → visualize",
+      "Tests for data quality (unique, not null, referential)",
+      "Infra as code sample (Terraform or simple IaC notes)"
+    ],
+    "The Edge": [
+      "Orchestration (Airflow/Prefect), scheduling & retries",
+      "Schema evolution & backfills plan",
+      "Cost awareness: partitioning, lifecycle policies"
+    ]
+  }
+},
+ml_engineer: {
+  label: "🤖 ML Engineer",
+  tips: [
+    "Ship small models with monitoring > perfect offline metrics.",
+    "Traceability: data → features → model → version."
+  ],
+  sections: {
+    "The Essentials": [
+      "Scikit-learn or PyTorch basics; train/val/test rigor",
+      "Feature pipelines; reproducible environments",
+      "Serving options (FastAPI/Streamlit) and simple monitors",
+      "Model evaluation beyond accuracy (precision/recall/AUC)"
+    ],
+    "The Showcase": [
+      "One deployed model with an online demo",
+      "Experiment tracking (MLflow/W&B) in README screenshots",
+      "Error analysis notebook & mitigation notes"
+    ],
+    "The Edge": [
+      "Data drift & concept drift checks",
+      "CI/CD for models; automated tests for data & code",
+      "Security/privacy: PII handling & anonymization basics"
+    ]
+  }
+},
+devops: {
+  label: "⚙️ DevOps / SRE",
+  tips: [
+    "Automate the boring stuff; document the scary stuff.",
+    "Availability is a product feature—measure it."
+  ],
+  sections: {
+    "The Essentials": [
+      "Linux fundamentals; networking basics",
+      "Containers (Docker) and orchestration concepts (K8s)",
+      "CI/CD pipelines (GitHub Actions/GitLab CI)",
+      "Observability: logs, metrics, traces (Prometheus/Grafana)"
+    ],
+    "The Showcase": [
+      "Pipeline-as-code repo with a sample app",
+      "IaC demo (Terraform/CloudFormation) for a small stack",
+      "Runbook + incident postmortem example"
+    ],
+    "The Edge": [
+      "Secrets management & least-privilege IAM",
+      "Blue/green or canary deployment example",
+      "SLO/SLI error budget write-up"
+    ]
+  }
+},
+cloud_engineer: {
+  label: "☁️ Cloud Engineer",
+  tips: [
+    "Design for least privilege and cost from day one.",
+    "Diagrams help hiring managers see your thinking."
+  ],
+  sections: {
+    "The Essentials": [
+      "Compute, storage, networking primitives on one cloud",
+      "Identity & Access Management basics",
+      "VPC/subnets, routing, security groups",
+      "Backup/DR and cost estimation mindset"
+    ],
+    "The Showcase": [
+      "Deploy a 2–tier app with IaC + diagram",
+      "Cost breakdown + optimization notes",
+      "Hardening checklist in README"
+    ],
+    "The Edge": [
+      "Serverless sample (Lambda/Functions)",
+      "Monitoring/alerts + synthetic checks",
+      "Multi-AZ rationale & trade-offs"
+    ]
+  }
+},
+security: {
+  label: "🛡️ Cybersecurity (Blue Team)",
+  tips: [
+    "Document evidence; think in kill chains & controls.",
+    "Security is everyone’s job—be the translator."
+  ],
+  sections: {
+    "The Essentials": [
+      "Threat models & MITRE ATT&CK awareness",
+      "Vuln management flow; CVSS basics",
+      "SIEM/SOC exposure (Splunk/ELK), log triage",
+      "Secure coding basics; OWASP Top 10"
+    ],
+    "The Showcase": [
+      "Home lab: vuln scan → triage → remediation report",
+      "Policy snippet or hardening guide you wrote",
+      "Mini tabletop exercise notes"
+    ],
+    "The Edge": [
+      "Cloud security (CIS Benchmarks)",
+      "Identity: MFA/SSO & least privilege",
+      "Incident postmortem template"
+    ]
+  }
+},
+pm: {
+  label: "🧭 Product Manager",
+  tips: [
+    "Start from the user problem; ship small, learn fast.",
+    "Prioritization = saying no with empathy."
+  ],
+  sections: {
+    "The Essentials": [
+      "Problem framing, PRDs, acceptance criteria",
+      "Backlog grooming & prioritization (RICE/MoSCoW)",
+      "Analytics: funnel, retention, activation",
+      "Stakeholder communication rhythms"
+    ],
+    "The Showcase": [
+      "1 PRD + wireframes + success metrics",
+      "Launch note & post-launch learning summary",
+      "GTM outline (audience, channels, messaging)"
+    ],
+    "The Edge": [
+      "A/B test plan & guardrails",
+      "Roadmap with risks and bets",
+      "Pricing/packaging thought exercise"
+    ]
+  }
+}
 };
 
 /* ---------- Helpers ---------- */
