@@ -6,21 +6,12 @@
   <title>The Coffee Shop — Career Checklist</title>
   <style>
     :root{
-      --coffee:#5c3d2e;      /* deep roast */
-      --latte:#f7efe7;       /* milk foam */
-      --mocha:#8b5e3c;       /* mocha */
-      --cream:#fff9f3;       /* page bg */
-      --ink:#2a1f19;         /* dark text */
-      --accent:#c2956b;      /* caramel */
-      --ok:#2e7d32;          /* progress */
+      --coffee:#5c3d2e; --latte:#f7efe7; --mocha:#8b5e3c; --cream:#fff9f3;
+      --ink:#2a1f19; --accent:#c2956b; --ok:#2e7d32;
     }
     html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55;}
     .wrap{max-width:900px;margin:0 auto;padding:24px 18px 64px;}
-    header{
-      background:linear-gradient(135deg,var(--latte),#fff);
-      border-bottom:3px solid var(--accent);
-      padding:18px 0; margin-bottom:20px;
-    }
+    header{background:linear-gradient(135deg,var(--latte),#fff);border-bottom:3px solid var(--accent);padding:18px 0; margin-bottom:20px;}
     .brand{display:flex;gap:12px;align-items:center}
     .cup{font-size:28px}
     h1{font-size:28px;margin:0;color:var(--coffee)}
@@ -37,6 +28,7 @@
     .btn{background:var(--coffee);color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
     .btn.alt{background:#e8ded5;color:#3b2a20}
     .btn.warn{background:#a4412b}
+    .btn.ghost{background:transparent;border:1px dashed var(--accent);color:var(--coffee)}
     .btn:disabled{opacity:.5;cursor:not-allowed}
     .progress{height:10px;background:#efe6de;border-radius:999px;overflow:hidden;margin:10px 0 4px}
     .bar{height:100%;width:0;background:linear-gradient(90deg,var(--ok),#6fbf73)}
@@ -48,6 +40,10 @@
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
     @media(min-width:860px){.grid{grid-template-columns:repeat(3,1fr)}}
     .hint{font-size:12px;color:#7a675c;margin-top:2px}
+    .summary-list{margin:8px 0 10px 16px}
+    .summary-list li{margin:6px 0}
+    .badge{display:inline-block;background:#efe6de;color:#4b382c;border-radius:6px;padding:2px 8px;font-size:11px;margin-left:6px}
+    .ok{color:var(--ok);font-weight:600}
   </style>
 </head>
 <body>
@@ -80,11 +76,21 @@
       <button class="btn" onclick="window.print()">🖨️ Print / Save PDF</button>
       <button class="btn alt" id="exportBtn">⬇️ Export .json</button>
       <button class="btn warn" id="resetBtn">♻️ Reset checklist</button>
+      <button class="btn ghost" id="analyzeBtn">📊 Analyze My Skill Gaps</button>
     </div>
     <div class="hint">Tip: Use <b>Print / Save as PDF</b> after you check items to create a one-page interview prep sheet.</div>
   </div>
 
   <section id="sections" class="grid"></section>
+
+  <!-- Skill-Gap Summary appears here -->
+  <div id="summaryCard" class="card" style="display:none">
+    <h2>📊 Skill-Gap Summary</h2>
+    <div id="summaryIntro" class="muted"></div>
+    <ol id="topActions" class="summary-list"></ol>
+    <div id="sectionBreakdown"></div>
+    <div class="tips" id="roleAdvice"></div>
+  </div>
 
   <div class="card tips">
     <b>☕ Coffee Tip:</b> Progress beats perfection. Bring one concrete example to every interview: the problem, what you did, and the impact.
@@ -230,8 +236,9 @@ function build(){
   tag.textContent = pack.label;
   tag.hidden = false;
 
-  // Build 3 cards
-  Object.entries(pack.sections).forEach(([section, items], sIdx)=>{
+  // Build cards
+  let idx = 0;
+  Object.entries(pack.sections).forEach(([section, items])=>{
     const card = document.createElement("div");
     card.className = "card";
 
@@ -243,7 +250,7 @@ function build(){
     ul.className = "list";
 
     items.forEach((txt, i)=>{
-      const id = `${sIdx}_${i}`;
+      const id = `${idx}_${i}`;
       const li = document.createElement("li");
       const cb = document.createElement("input");
       cb.type = "checkbox";
@@ -263,14 +270,15 @@ function build(){
     card.appendChild(ul);
 
     // role-specific micro-tips
-    if(pack.tips && pack.tips[sIdx]){
+    if(pack.tips && pack.tips[idx]){
       const tip = document.createElement("div");
       tip.className = "tips";
-      tip.innerHTML = `☕ <b>Coffee Tip:</b> ${pack.tips[sIdx]}`;
+      tip.innerHTML = `☕ <b>Coffee Tip:</b> ${pack.tips[idx]}`;
       card.appendChild(tip);
     }
 
     container.appendChild(card);
+    idx++;
   });
 
   renderProgress();
@@ -283,6 +291,7 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
     localStorage.removeItem(KEY("state"));
     Object.keys(state).forEach(k=>delete state[k]);
     build();
+    document.getElementById("summaryCard").style.display = "none";
   }
 });
 document.getElementById("exportBtn").addEventListener("click", ()=>{
@@ -298,7 +307,129 @@ document.getElementById("exportBtn").addEventListener("click", ()=>{
   a.click();
 });
 
-/* ---------- Init ---------- */
+/* ---------- Skill-Gap Analysis ---------- */
+/* Heuristic tags -> advice; add/adjust to taste */
+const RULES = [
+  { tag:/portfolio|case study|behance|dribbble|readme|narratives|process map/i, advice:"Craft a story-first portfolio: problem → your role → measurable impact. Link prominently on LinkedIn ‘Featured’." },
+  { tag:/framework|react|spring|django|\.net|node|component/i, advice:"Pick one framework to master this month and ship a small app to production (free tier is fine)." },
+  { tag:/git|github|branches|pull|pr|code review/i, advice:"Practice clean Git: small commits, clear messages, and at least one PR with a thoughtful description." },
+  { tag:/deploy|render|netlify|streamlit|heroku/i, advice:"Deploy at least one project so interviewers can click and try your work." },
+  { tag:/testing|pytest|junit|selenium|postman|jmeter/i, advice:"Add automated tests and include a short ‘How I test’ section in your README." },
+  { tag:/api|json|rest/i, advice:"Build a tiny REST API and a client that consumes it; document endpoints in your README." },
+  { tag:/docker|ci\/cd|actions/i, advice:"Containerize one project and add a basic CI workflow (lint + tests on every push)." },
+  { tag:/accessibility|wcag/i, advice:"Run an accessibility check (e.g., axe, Lighthouse) and note your fixes in the case study." },
+  { tag:/analytics|hotjar|google analytics/i, advice:"Close the loop: add a metric you track and show how it informed a design/code decision." },
+  { tag:/agile|scrum|acceptance criteria|stories/i, advice:"Write three crisp user stories with acceptance criteria; add them to your portfolio page." },
+  { tag:/sql|data validation/i, advice:"Write a short SQL snippet that validates a business rule and attach it to your sample project." },
+  { tag:/domain|banking|insurance|public sector/i, advice:"Read one public domain guide and summarize 3 insights in your notes/portfolio." },
+  { tag:/communication|stand-up|storytelling|stakeholder/i, advice:"Practice a 60-second project pitch; record yourself and refine clarity and tone." }
+];
+
+/* Section priority: Essentials > Showcase > Edge */
+const SECTION_ORDER = ["The Essentials","The Showcase","The Edge"];
+function sectionWeight(name){
+  const i = SECTION_ORDER.indexOf(name);
+  return (i === -1) ? 1 : (SECTION_ORDER.length - i); // Essentials=3, Showcase=2, Edge=1
+}
+
+function analyzeGaps(){
+  const pack = DATA[role];
+  if(!pack) return;
+
+  // Gather unchecked items with section context
+  const unchecked = [];
+  let sIdx = 0;
+  for (const [section, items] of Object.entries(pack.sections)){
+    items.forEach((txt, i)=>{
+      const id = `${sIdx}_${i}`;
+      const checked = !!state[id];
+      if(!checked){
+        unchecked.push({ section, text: txt, weight: sectionWeight(section) });
+      }
+    });
+    sIdx++;
+  }
+
+  const total = document.querySelectorAll('input[type=checkbox]').length;
+  const done = document.querySelectorAll('input[type=checkbox]:checked').length;
+  const pct = total? Math.round(done*100/total) : 0;
+
+  // Score unchecked by weight; map to advice using RULES
+  const adviceMap = new Map();
+  unchecked.forEach(item=>{
+    // find the first matching rule
+    const rule = RULES.find(r => r.tag.test(item.text));
+    const key = rule ? rule.advice : `Close a gap in <b>${item.section}</b>: “${item.text}”. Turn it into a concrete task for this week.`;
+    const current = adviceMap.get(key) || { score:0, hits:0, sections:new Set() };
+    current.score += item.weight;
+    current.hits += 1;
+    current.sections.add(item.section);
+    adviceMap.set(key, current);
+  });
+
+  // Sort by score, then hits
+  const ranked = [...adviceMap.entries()]
+    .map(([advice, meta])=>({advice, ...meta}))
+    .sort((a,b)=> b.score - a.score || b.hits - a.hits);
+
+  // Build Top 3 Actions
+  const top = ranked.slice(0,3);
+
+  // Section breakdown
+  const bySection = {};
+  unchecked.forEach(u=>{
+    bySection[u.section] = (bySection[u.section]||0) + 1;
+  });
+
+  // Render summary
+  const card = document.getElementById("summaryCard");
+  const intro = document.getElementById("summaryIntro");
+  const list = document.getElementById("topActions");
+  const breakdown = document.getElementById("sectionBreakdown");
+  const roleAdvice = document.getElementById("roleAdvice");
+
+  card.style.display = "block";
+  intro.innerHTML = unchecked.length === 0
+    ? `<span class="ok">Amazing!</span> You’ve checked everything. Consider polishing storytelling and practicing mock interviews.`
+    : `You’ve completed <b>${pct}%</b>. Based on what’s left unchecked (<b>${unchecked.length}</b> items), here are your <b>Top 3 Actions</b> to boost job-readiness fast:`;
+
+  list.innerHTML = "";
+  if (unchecked.length === 0){
+    list.innerHTML = `<li>Run a final pass on your portfolio/resume and schedule two coffee chats this week.</li>`;
+  } else {
+    top.forEach((t, i)=>{
+      const li = document.createElement("li");
+      li.innerHTML = `${i+1}. ${t.advice} <span class="badge">priority +${t.score}</span>`;
+      list.appendChild(li);
+    });
+  }
+
+  const secHtml = Object.keys(pack.sections).map(s=>{
+    const missing = bySection[s] || 0;
+    const totalInSection = pack.sections[s].length;
+    const doneInSection = totalInSection - missing;
+    const pctSec = Math.round((doneInSection*100)/totalInSection);
+    return `<div class="tips" style="margin-top:10px">
+      <b>${s}:</b> ${doneInSection}/${totalInSection} complete (${pctSec}%).
+      ${missing>0 ? `Focus here next: <i>${missing}</i> item(s) remain.` : `Great work — this area is strong.`}
+    </div>`;
+  }).join("");
+
+  breakdown.innerHTML = `<h3 style="margin:14px 0 8px 0;color:var(--mocha)">Section Focus</h3>${secHtml}`;
+
+  // Role-specific nudge
+  const nudges = {
+    designer: "Aim to publish one story-driven case study this week. Include problem, constraints, before/after, and 1 metric.",
+    developer: "Ship something small to prod (free hosting is fine). A live link + screenshot often beats words on a resume.",
+    tester: "Record a short screen-capture of your test run and link it in your README. It instantly demonstrates rigor.",
+    analyst: "Write three crisp user stories with acceptance criteria and attach a simple swimlane diagram."
+  };
+  roleAdvice.innerHTML = `☕ <b>Role Nudge:</b> ${nudges[role] || "Turn gaps into 45-minute tasks. Consistency compounds."}`;
+}
+
+/* ---------- Init + Events ---------- */
+document.getElementById("analyzeBtn").addEventListener("click", analyzeGaps);
+
 build();
 </script>
 </body>
