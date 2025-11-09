@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The Coffee Shop — Career Checklist</title>
+  <style>
+    :root{
+      --coffee:#5c3d2e;      /* deep roast */
+      --latte:#f7efe7;       /* milk foam */
+      --mocha:#8b5e3c;       /* mocha */
+      --cream:#fff9f3;       /* page bg */
+      --ink:#2a1f19;         /* dark text */
+      --accent:#c2956b;      /* caramel */
+      --ok:#2e7d32;          /* progress */
+    }
+    html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55;}
+    .wrap{max-width:900px;margin:0 auto;padding:24px 18px 64px;}
+    header{
+      background:linear-gradient(135deg,var(--latte),#fff);
+      border-bottom:3px solid var(--accent);
+      padding:18px 0; margin-bottom:20px;
+    }
+    .brand{display:flex;gap:12px;align-items:center}
+    .cup{font-size:28px}
+    h1{font-size:28px;margin:0;color:var(--coffee)}
+    .muted{color:#6d5a50;font-size:14px}
+    .role-tag{display:inline-block;background:var(--accent);color:white;padding:4px 10px;border-radius:999px;font-size:12px;margin-top:6px}
+    .card{background:white;border:1px solid #eadfd7;border-radius:14px;padding:16px 16px 6px;margin:14px 0;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+    .card h2{margin:0 0 8px 0;color:var(--mocha);font-size:20px}
+    .tips{background:#fff7ef;border-left:4px solid var(--accent);padding:10px 12px;border-radius:8px;margin-top:12px;color:#5a432f}
+    .list{list-style:none;margin:8px 0 2px 0;padding:0}
+    .list li{display:flex;gap:10px;align-items:flex-start;padding:10px 8px;border-radius:10px}
+    .list li:hover{background:#faf6f2}
+    .list input[type=checkbox]{transform:scale(1.15);margin-top:2px}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 22px}
+    .btn{background:var(--coffee);color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
+    .btn.alt{background:#e8ded5;color:#3b2a20}
+    .btn.warn{background:#a4412b}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .progress{height:10px;background:#efe6de;border-radius:999px;overflow:hidden;margin:10px 0 4px}
+    .bar{height:100%;width:0;background:linear-gradient(90deg,var(--ok),#6fbf73)}
+    .pct{font-size:12px;color:#4a3a31}
+    .pill{display:inline-flex;gap:6px;align-items:center;background:#f2e7dd;color:#5a4638;border:1px solid #eadfd7;padding:6px 10px;border-radius:999px;font-size:12px}
+    .nav{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+    a{color:#5a3e2f}
+    footer{margin-top:28px;color:#6d5a50;font-size:12px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:860px){.grid{grid-template-columns:repeat(3,1fr)}}
+    .hint{font-size:12px;color:#7a675c;margin-top:2px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <div class="cup">☕️</div>
+      <div>
+        <h1>The Coffee Shop — Career Checklist</h1>
+        <div class="muted">Practical, friendly prep for newcomers to Canadian tech.</div>
+        <div id="roleTag" class="role-tag" hidden></div>
+      </div>
+    </div>
+    <div class="nav">
+      <span class="pill">Jump to:</span>
+      <a class="pill" href="coffee-shop.html?role=designer">🎨 Designers</a>
+      <a class="pill" href="coffee-shop.html?role=developer">💻 Developers</a>
+      <a class="pill" href="coffee-shop.html?role=tester">🧪 Testers</a>
+      <a class="pill" href="coffee-shop.html?role=analyst">🧭 Business Analysts</a>
+      <a class="pill" href="index.md">🏠 Home</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="card">
+    <div class="progress"><div id="bar" class="bar"></div></div>
+    <div class="pct"><span id="pct">0%</span> complete • Saved locally</div>
+    <div class="actions">
+      <button class="btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+      <button class="btn alt" id="exportBtn">⬇️ Export .json</button>
+      <button class="btn warn" id="resetBtn">♻️ Reset checklist</button>
+    </div>
+    <div class="hint">Tip: Use <b>Print / Save as PDF</b> after you check items to create a one-page interview prep sheet.</div>
+  </div>
+
+  <section id="sections" class="grid"></section>
+
+  <div class="card tips">
+    <b>☕ Coffee Tip:</b> Progress beats perfection. Bring one concrete example to every interview: the problem, what you did, and the impact.
+  </div>
+
+  <footer>
+    Curated with ❤️ in the Coffee Shop. Your selections never leave your browser (localStorage only).
+  </footer>
+</main>
+
+<script>
+/* ---------- Data (edit to taste) ---------- */
+const DATA = {
+  designer: {
+    label: "🎨 Designers (UX/UI/Product)",
+    tips: [
+      "Show empathy for the developer who will build your design.",
+      "Tell the story: problem → process → impact (before/after).",
+    ],
+    sections: {
+      "The Essentials": [
+        "Understand user journeys, personas, wireframes, usability tests",
+        "Tools: Figma • Adobe XD • Miro • Notion (collaboration)",
+        "Responsive design & WCAG accessibility basics",
+        "Use analytics/feedback loops (GA, Hotjar) to iterate",
+      ],
+      "The Showcase": [
+        "Portfolio with 3–5 projects (role, process, outcomes)",
+        "1 case study focused on problem-solving over pixels",
+        "Link Behance/Dribbble + LinkedIn ‘Featured’",
+      ],
+      "The Edge": [
+        "Basic HTML/CSS or component library familiarity",
+        "Agile handoff skills (Figma specs, Zeplin, dev notes)",
+        "Confident storytelling to non-design stakeholders",
+      ]
+    }
+  },
+  developer: {
+    label: "💻 Developers (Front/Back/Full-stack)",
+    tips: [
+      "Master one stack deeply; show you can learn the rest.",
+      "Write READMEs that explain ‘why’, not just ‘how’.",
+    ],
+    sections: {
+      "The Essentials": [
+        "Core language: Python • Java • JS/TS • C# (pick one primary)",
+        "Framework: React • Spring Boot • Node/Express • Django • .NET",
+        "Git & GitHub: branches, PRs, code reviews",
+        "APIs & JSON; calling and building simple REST endpoints",
+      ],
+      "The Showcase": [
+        "2–3 public projects with clear READMEs",
+        "One collaborative repo (demonstrates teamwork)",
+        "Deployed demo (Render/Netlify/Streamlit) when possible",
+      ],
+      "The Edge": [
+        "Docker basics; CI/CD or GitHub Actions",
+        "Testing: Pytest • JUnit • Postman collections",
+        "Cloud familiarity (AWS/Azure fundamentals)",
+        "Clear stand-up updates and PR communication",
+      ]
+    }
+  },
+  tester: {
+    label: "🧪 Testers / QA Analysts",
+    tips: [
+      "QA builds trust — highlight risk thinking and prevention.",
+      "Great bug reports are polite, precise, and reproducible.",
+    ],
+    sections: {
+      "The Essentials": [
+        "Manual testing lifecycle: test cases, UAT, bug lifecycle",
+        "Tools: Jira • Confluence • TestRail • Postman",
+        "SDLC understanding and QA’s role in Agile",
+        "Basic scripting for automation (Python/Java)",
+      ],
+      "The Showcase": [
+        "Mini automation project (Selenium + Pytest/JUnit)",
+        "Sample bug reports & test docs (PDF/Notion)",
+        "Open-source issue participation (GitHub Issues)",
+      ],
+      "The Edge": [
+        "API testing & performance testing (JMeter)",
+        "CI integration for automated test runs",
+        "Strong cross-team communication habits",
+      ]
+    }
+  },
+  analyst: {
+    label: "🧭 Business Systems Analysts",
+    tips: [
+      "Translate tech to value; speak in outcomes.",
+      "Ask ‘What problem are we solving?’ early and often.",
+    ],
+    sections: {
+      "The Essentials": [
+        "Agile/Scrum basics; story writing & acceptance criteria",
+        "Tools: Jira • Confluence • Lucidchart/Draw.io/Visio",
+        "Requirements elicitation (interviews, workshops)",
+        "Basic SQL/data validation skills",
+      ],
+      "The Showcase": [
+        "2–3 project narratives: stakeholder → requirement → impact",
+        "1 visual process map (BPMN or simplified swimlane)",
+        "Evidence of cross-team facilitation",
+      ],
+      "The Edge": [
+        "Domain familiarity (banking, insurance, public sector)",
+        "Stakeholder management, negotiation, storytelling",
+        "Optional: CBAP/CSPO/Scrum Master certifications",
+      ]
+    }
+  }
+};
+
+/* ---------- Helpers ---------- */
+const qs = (k) => new URLSearchParams(location.search).get(k);
+const role = (qs("role")||"").toLowerCase();
+const KEY = (id) => `coffeeChecklist::${role}::${id}`;
+const state = JSON.parse(localStorage.getItem(KEY("state"))||"{}");
+
+function saveState(){ localStorage.setItem(KEY("state"), JSON.stringify(state)); renderProgress(); }
+function renderProgress(){
+  const total = document.querySelectorAll('input[type=checkbox]').length;
+  const done = document.querySelectorAll('input[type=checkbox]:checked').length;
+  const pct = total? Math.round(done*100/total) : 0;
+  document.getElementById('pct').textContent = pct + "%";
+  document.getElementById('bar').style.width = pct + "%";
+}
+
+function build(){
+  const container = document.getElementById("sections");
+  container.innerHTML = "";
+
+  const pack = DATA[role];
+  const tag = document.getElementById("roleTag");
+  if(!pack){
+    tag.textContent = "Choose a role above to start.";
+    tag.hidden = false;
+    return;
+  }
+  tag.textContent = pack.label;
+  tag.hidden = false;
+
+  // Build 3 cards
+  Object.entries(pack.sections).forEach(([section, items], sIdx)=>{
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const h2 = document.createElement("h2");
+    h2.textContent = section;
+    card.appendChild(h2);
+
+    const ul = document.createElement("ul");
+    ul.className = "list";
+
+    items.forEach((txt, i)=>{
+      const id = `${sIdx}_${i}`;
+      const li = document.createElement("li");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = id;
+      cb.checked = !!state[id];
+      cb.addEventListener("change", e => { state[id] = e.target.checked; saveState(); });
+
+      const label = document.createElement("label");
+      label.htmlFor = id;
+      label.innerHTML = txt;
+
+      li.appendChild(cb);
+      li.appendChild(label);
+      ul.appendChild(li);
+    });
+
+    card.appendChild(ul);
+
+    // role-specific micro-tips
+    if(pack.tips && pack.tips[sIdx]){
+      const tip = document.createElement("div");
+      tip.className = "tips";
+      tip.innerHTML = `☕ <b>Coffee Tip:</b> ${pack.tips[sIdx]}`;
+      card.appendChild(tip);
+    }
+
+    container.appendChild(card);
+  });
+
+  renderProgress();
+}
+
+/* ---------- Export / Reset ---------- */
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  if(!role) return;
+  if(confirm("Reset all checkboxes for this role?")){
+    localStorage.removeItem(KEY("state"));
+    Object.keys(state).forEach(k=>delete state[k]);
+    build();
+  }
+});
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const payload = {
+    role,
+    completed: Object.entries(state).filter(([,v])=>v).map(([k])=>k),
+    timestamp: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `coffee-checklist-${role}.json`;
+  a.click();
+});
+
+/* ---------- Init ---------- */
+build();
+</script>
+</body>
+</html>
