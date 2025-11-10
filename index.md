@@ -23,12 +23,7 @@ Brief intro (1–2 lines): what you do, who you help, and how.
 
 ## 🎓 Courses
 **Python for AI (YouTube series)**  
-Short blurb of what learners get.  
-- ▶️ Playlist: _link_  
-- 📒 GitHub repo: _link_  
-- 📅 Roadmap: _link to a markdown/Notion doc if you have it_
 
-> _Outcome-focused, beginner-friendly, hands-on._
 
 ---
 
@@ -38,7 +33,6 @@ Short blurb of what learners get.
 - 📦 Resource Hub (tools/checklists): _link_  
 - 🧭 Newcomer Guide (resume, email tone, meetings): _link_
 
-> For JVS participants and newcomers: practical, empathetic, and real-world.
 
 ---
 
@@ -67,13 +61,6 @@ Practical, free tools you can use right now.
 
 > Want to contribute a tool? Open a PR or submit an issue with a short description.
 
----
-
-## 📅 Events / Office Hours
-- ☎️ **Monthly Coffee Chat** (15–30 min, limited slots): _Calendly/Google Form link_  
-- 🧑‍🤝‍🧑 **Community**: Discord/Slack/Meetup links (if any)
-
-*I can’t reply to all DMs—this keeps it fair and manageable.*
 
 ---
 
