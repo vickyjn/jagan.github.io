@@ -6,7 +6,7 @@ description:
 # 👋 Hi, I’m <Your Name>
 
 Brief intro (1–2 lines): what you do, who you help, and how.  
-
+*Example:* “”
 
 ---
 
@@ -43,53 +43,16 @@ Short blurb of what learners get.
 ---
 
 ## ☕ Coffee Shop (Career Hub)
-## ☕ Coffee Shop (Career Hub)
-
 *A cozy corner for role-based readiness with interactive checklists.*  
-Work through each checklist, analyze your skill gaps, and save a one-page prep sheet before interviews.
+Use the checklists, analyze your skill gaps, and save a 1-page prep sheet before interviews.
 
-<div align="center">
+- 🎨 Designers → **[Open Checklist](coffee-shop.html?role=designer)**
+- 💻 Developers → **[Open Checklist](coffee-shop.html?role=developer)**
+- 🧪 Testers / QA → **[Open Checklist](coffee-shop.html?role=tester)**
+- 🧭 Business Systems Analysts → **[Open Checklist](coffee-shop.html?role=analyst)**
 
-<table>
-<tr>
-<td width="45%" valign="top">
-
-### 🎨 Designers  
-Focus on UX/UI fundamentals, Figma, accessibility, and storytelling.  
-<a href="coffee-shop.html?role=designer"><img src="https://img.shields.io/badge/Open_Checklist-8B4513?style=for-the-badge&logo=figma&logoColor=white" alt="Open Checklist"></a>
-
-</td>
-<td width="45%" valign="top">
-
-### 💻 Developers  
-Sharpen coding, GitHub, and project-showcase skills for Canadian teams.  
-<a href="coffee-shop.html?role=developer"><img src="https://img.shields.io/badge/Open_Checklist-8B4513?style=for-the-badge&logo=github&logoColor=white" alt="Open Checklist"></a>
-
-</td>
-</tr>
-<tr>
-<td width="45%" valign="top">
-
-### 🧪 Testers / QA Analysts  
-Master test lifecycles, automation, and cross-team communication.  
-<a href="coffee-shop.html?role=tester"><img src="https://img.shields.io/badge/Open_Checklist-8B4513?style=for-the-badge&logo=selenium&logoColor=white" alt="Open Checklist"></a>
-
-</td>
-<td width="45%" valign="top">
-
-### 🧭 Business Systems Analysts  
-Bridge tech and business with clear requirements and strong communication.  
-<a href="coffee-shop.html?role=analyst"><img src="https://img.shields.io/badge/Open_Checklist-8B4513?style=for-the-badge&logo=notion&logoColor=white" alt="Open Checklist"></a>
-
-</td>
-</tr>
-</table>
-
-</div>
-
-> Your progress saves **in your browser** (no sign-in).  
+> Your progress is saved **in your browser** (no sign-in).  
 > Use **Analyze My Skill Gaps** to get tailored next steps.
-
 
 ---
 
@@ -123,8 +86,6 @@ Practical, free tools you can use right now.
 
 ---
 
-
----
 
 ## 🧾 Site Notes
 - Built with **GitHub Pages** (static, no tracking).  
