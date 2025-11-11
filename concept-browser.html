@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Concept Browser — Skills ⇄ Careers</title>
+<meta name="description" content="Browse skills and careers like concepts: list, graph, and details with history and filters." />
+<style>
+  :root{
+    --bg:#faf8f6; --card:#ffffff; --ink:#2b2622; --muted:#6e635b;
+    --accent:#c2956b; --edge:#c7bdb6; --dim:#d9d3cd;
+    --chip:#efe6de;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  header{padding:12px 14px;border-bottom:3px solid var(--accent);background:linear-gradient(135deg,#fff,var(--bg))}
+  h1{font-size:20px;margin:0}
+  .muted{color:var(--muted);font-size:13px}
+  .layout{display:grid;grid-template-columns: 280px 1fr 320px; gap:12px; height:calc(100vh - 74px); padding:12px}
+  @media(max-width:1100px){ .layout{grid-template-columns: 1fr; height:auto} }
+  .panel{background:var(--card);border:1px solid #e6ded7;border-radius:12px;overflow:hidden}
+  .phead{padding:10px 12px;border-bottom:1px solid #ecdcd0;background:#fff}
+  .pbody{padding:10px 12px;overflow:auto;height:100%}
+
+  /* Left: Concepts */
+  .search{display:flex;gap:8px}
+  .search input{flex:1;border:1px solid #dfd6cf;border-radius:8px;padding:8px 10px}
+  .filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{background:var(--chip);border:1px solid #eadfd7;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer}
+  .chip.active{background:#e1d3c7}
+  .list{margin:10px 0 0 0;padding:0;list-style:none}
+  .list li{padding:8px 10px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+  .list li:hover{background:#faf6f2}
+  .tag{font-size:11px;color:#5a4638;background:#f6efe9;border:1px solid #e7ddd4;border-radius:6px;padding:1px 6px}
+
+  /* Center: Graph + controls */
+  .centerwrap{height:100%;display:flex;flex-direction:column}
+  #breadcrumbs{padding:8px 10px;border-bottom:1px solid #ecdcd0;background:#fff}
+  .crumbs{display:flex;flex-wrap:wrap;gap:6px}
+  .crumb{font-size:12px;background:#f1e7de;border:1px solid #eadfd7;border-radius:999px;padding:4px 8px;cursor:pointer}
+  #viz{flex:1}
+  .cctrl{display:flex;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid #ecdcd0;background:#fff}
+  button{border:none;border-radius:10px;padding:8px 12px;background:#3f342d;color:#fff;cursor:pointer}
+  button.alt{background:#e9e1da;color:#3f342d}
+  .hint{font-size:12px;color:var(--muted)}
+
+  /* Right: Details */
+  .kv{margin:6px 0}
+  .kv b{display:inline-block;min-width:110px}
+  .pill{display:inline-block;background:#f1e7de;color:#5a4638;border:1px solid #eadfd7;padding:3px 8px;border-radius:999px;font-size:12px}
+  .neighbors ul{margin:6px 0 10px 18px}
+  .neighbors li{margin:4px 0}
+  .learn-list li{margin:6px 0}
+  footer{padding:10px 12px;color:var(--muted);font-size:12px}
+
+  /* Graph */
+  .link{stroke:var(--edge);stroke-opacity:.6}
+  .node circle{stroke:#fff;stroke-width:1.5px}
+  .node text{font-size:12px;pointer-events:none}
+  .dimmed{opacity:.15}
+  .highlight{stroke:#000;stroke-width:2.2px}
+  .tooltip{
+    position:fixed; pointer-events:none; background:#fff; border:1px solid #e6ded7;
+    padding:6px 8px; border-radius:8px; font-size:12px; color:#3a312c; box-shadow:0 2px 8px rgba(0,0,0,.05)
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Concept Browser — Skills ⇄ Careers</h1>
+  <div class="muted">Browse concepts via list, graph, and details. Use filters, history, and layout toggle.</div>
+</header>
+
+<div class="layout">
+  <!-- LEFT: Concepts -->
+  <aside class="panel" id="left">
+    <div class="phead">
+      <div class="search">
+        <input id="q" type="text" placeholder="Search skills or careers…" />
+        <button id="btnFind">Find</button>
+      </div>
+      <div class="filters" id="filters">
+        <!-- chips populated from groups -->
+      </div>
+      <div class="filters" style="margin-top:6px">
+        <span class="chip type active" data-type="all">All</span>
+        <span class="chip type" data-type="skill">Skills</span>
+        <span class="chip type" data-type="career">Careers</span>
+      </div>
+    </div>
+    <div class="pbody">
+      <ul class="list" id="conceptList"></ul>
+    </div>
+  </aside>
+
+  <!-- CENTER: Graph & breadcrumbs -->
+  <section class="panel centerwrap">
+    <div id="breadcrumbs">
+      <div class="crumbs" id="crumbs"></div>
+    </div>
+    <div id="viz" aria-label="Concept graph"></div>
+    <div class="cctrl">
+      <button id="layoutForce">Force Layout</button>
+      <button id="layoutBip" class="alt">Bipartite (Skills ⇄ Careers)</button>
+      <span class="hint">Click a node to focus; click empty space to reset. Drag to re-arrange. Scroll to zoom.</span>
+    </div>
+  </section>
+
+  <!-- RIGHT: Details -->
+  <aside class="panel" id="right">
+    <div class="phead"><b>Details</b></div>
+    <div class="pbody" id="details">
+      <div class="kv"><b>Selection:</b> <span id="selName">None</span></div>
+      <div class="kv"><b>Type:</b> <span id="selType">–</span></div>
+      <div class="kv"><b>Group:</b> <span id="selGroup">–</span></div>
+
+      <div style="margin-top:10px"><span class="pill">Neighbors</span></div>
+      <div class="neighbors" id="neighbors">
+        <div class="muted">Click a node to see connected skills/careers.</div>
+      </div>
+
+      <div style="margin-top:10px"><span class="pill">Suggested Learning Path</span> <span class="muted">(for careers)</span></div>
+      <ol id="learnPath" class="learn-list"></ol>
+    </div>
+    <footer>Static page. No tracking. Data is inline below.</footer>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+/* ========= Editable Data =========
+   Node: { id, type: "skill"|"career", group: "Frontend"|"Data"|... }
+   Link: { source, target, weight }  // weight controls thickness (1..5 typical)
+*/
+const DATA = {
+  nodes: [
+    // Skills
+    { id:"Python", type:"skill", group:"Data" },
+    { id:"JavaScript", type:"skill", group:"Frontend" },
+    { id:"React", type:"skill", group:"Frontend" },
+    { id:"SQL", type:"skill", group:"Data" },
+    { id:"Data Visualization", type:"skill", group:"Data" },
+    { id:"Git & GitHub", type:"skill", group:"Core" },
+    { id:"APIs & REST", type:"skill", group:"Core" },
+    { id:"Accessibility (WCAG)", type:"skill", group:"Frontend" },
+    { id:"Jira/Confluence", type:"skill", group:"Product" },
+    { id:"Testing (Pytest/JUnit)", type:"skill", group:"Quality" },
+    { id:"Docker", type:"skill", group:"Cloud" },
+    { id:"Cloud Basics (AWS/Azure)", type:"skill", group:"Cloud" },
+    { id:"Figma", type:"skill", group:"Product" },
+    { id:"User Research", type:"skill", group:"Product" },
+    { id:"Storytelling (Portfolio)", type:"skill", group:"Product" },
+
+    // Careers
+    { id:"Frontend Developer", type:"career", group:"Frontend" },
+    { id:"Backend Developer", type:"career", group:"Cloud" },
+    { id:"Full-stack Developer", type:"career", group:"Core" },
+    { id:"Data Analyst", type:"career", group:"Data" },
+    { id:"QA / Tester", type:"career", group:"Quality" },
+    { id:"Business Systems Analyst", type:"career", group:"Product" },
+    { id:"UX/UI Designer", type:"career", group:"Product" },
+    { id:"ML Engineer", type:"career", group:"Data" }
+  ],
+  links: [
+    // Dev (weights indicate strength)
+    { source:"JavaScript", target:"Frontend Developer", weight:5 },
+    { source:"React", target:"Frontend Developer", weight:5 },
+    { source:"Accessibility (WCAG)", target:"Frontend Developer", weight:3 },
+    { source:"APIs & REST", target:"Frontend Developer", weight:3 },
+    { source:"Git & GitHub", target:"Frontend Developer", weight:3 },
+
+    { source:"Python", target:"Backend Developer", weight:4 },
+    { source:"APIs & REST", target:"Backend Developer", weight:4 },
+    { source:"SQL", target:"Backend Developer", weight:3 },
+    { source:"Docker", target:"Backend Developer", weight:3 },
+    { source:"Cloud Basics (AWS/Azure)", target:"Backend Developer", weight:3 },
+    { source:"Git & GitHub", target:"Backend Developer", weight:3 },
+
+    { source:"JavaScript", target:"Full-stack Developer", weight:4 },
+    { source:"React", target:"Full-stack Developer", weight:4 },
+    { source:"Python", target:"Full-stack Developer", weight:3 },
+    { source:"APIs & REST", target:"Full-stack Developer", weight:4 },
+    { source:"SQL", target:"Full-stack Developer", weight:2 },
+    { source:"Docker", target:"Full-stack Developer", weight:2 },
+
+    // Data
+    { source:"Python", target:"Data Analyst", weight:4 },
+    { source:"SQL", target:"Data Analyst", weight:5 },
+    { source:"Data Visualization", target:"Data Analyst", weight:5 },
+    { source:"Storytelling (Portfolio)", target:"Data Analyst", weight:3 },
+    { source:"Jira/Confluence", target:"Data Analyst", weight:2 },
+
+    // QA
+    { source:"Testing (Pytest/JUnit)", target:"QA / Tester", weight:5 },
+    { source:"APIs & REST", target:"QA / Tester", weight:3 },
+    { source:"Jira/Confluence", target:"QA / Tester", weight:4 },
+    { source:"Git & GitHub", target:"QA / Tester", weight:3 },
+
+    // BSA
+    { source:"Jira/Confluence", target:"Business Systems Analyst", weight:5 },
+    { source:"Storytelling (Portfolio)", target:"Business Systems Analyst", weight:4 },
+    { source:"APIs & REST", target:"Business Systems Analyst", weight:3 },
+    { source:"SQL", target:"Business Systems Analyst", weight:3 },
+
+    // Design
+    { source:"Figma", target:"UX/UI Designer", weight:5 },
+    { source:"User Research", target:"UX/UI Designer", weight:5 },
+    { source:"Accessibility (WCAG)", target:"UX/UI Designer", weight:3 },
+    { source:"Storytelling (Portfolio)", target:"UX/UI Designer", weight:4 },
+
+    // ML Eng
+    { source:"Python", target:"ML Engineer", weight:5 },
+    { source:"SQL", target:"ML Engineer", weight:4 },
+    { source:"Docker", target:"ML Engineer", weight:4 },
+    { source:"Cloud Basics (AWS/Azure)", target:"ML Engineer", weight:4 },
+    { source:"Testing (Pytest/JUnit)", target:"ML Engineer", weight:3 }
+  ]
+};
+
+/* ========= Colors by Group ========= */
+const GROUP_COLORS = d3.scaleOrdinal()
+  .domain([...new Set(DATA.nodes.map(n => n.group))])
+  .range(["#1565c0","#2e7d32","#8e24aa","#ef6c00","#00897b","#5d4037","#c62828","#6d4c41"]);
+
+/* ========= Concept List (left) ========= */
+const q = document.getElementById('q');
+const conceptList = document.getElementById('conceptList');
+let typeFilter = 'all';
+let groupFilter = new Set(); // chips
+
+function renderFilters(){
+  const cont = document.getElementById('filters');
+  cont.innerHTML = '';
+  const groups = [...new Set(DATA.nodes.map(n => n.group))].sort();
+  groups.forEach(g=>{
+    const s = document.createElement('span');
+    s.className = 'chip';
+    s.textContent = g;
+    s.style.borderColor = '#eadfd7';
+    s.style.background = '#fff';
+    s.style.color = '#3f342d';
+    s.onclick = ()=>{
+      if(groupFilter.has(g)){ groupFilter.delete(g); s.classList.remove('active'); s.style.background='#fff'; }
+      else { groupFilter.add(g); s.classList.add('active'); s.style.background='#e1d3c7'; }
+      renderList();
+      filterGraph();
+    };
+    cont.appendChild(s);
+  });
+}
+renderFilters();
+
+document.querySelectorAll('.chip.type').forEach(c=>{
+  c.onclick = ()=>{
+    document.querySelectorAll('.chip.type').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');
+    typeFilter = c.dataset.type;
+    renderList();
+    filterGraph();
+  };
+});
+
+document.getElementById('btnFind').onclick = ()=> renderList();
+
+function passesFilters(n){
+  const tOk = (typeFilter==='all' || n.type===typeFilter);
+  const gOk = (groupFilter.size===0 || groupFilter.has(n.group));
+  const qOk = (!q.value.trim() || n.id.toLowerCase().includes(q.value.trim().toLowerCase()));
+  return tOk && gOk && qOk;
+}
+
+function renderList(){
+  conceptList.innerHTML = '';
+  DATA.nodes.filter(passesFilters).sort((a,b)=> a.type.localeCompare(b.type) || a.id.localeCompare(b.id))
+    .forEach(n=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${n.id}</span> <span class="tag">${n.type}</span>`;
+      li.onclick = ()=> focusNode(n.id, true);
+      conceptList.appendChild(li);
+    });
+}
+renderList();
+
+/* ========= Graph (center) ========= */
+const W = document.getElementById('viz').clientWidth;
+const H = document.getElementById('viz').clientHeight;
+const svg = d3.select('#viz').append('svg').attr('width', W).attr('height', H);
+
+const zoom = d3.zoom().scaleExtent([0.3, 3]).on('zoom', (e)=> g.attr('transform', e.transform));
+svg.call(zoom);
+
+const g = svg.append('g');
+const linkLayer = g.append('g').attr('stroke-linecap','round');
+const nodeLayer = g.append('g');
+
+const linkSel = linkLayer.selectAll('.link')
+  .data(DATA.links)
+  .enter().append('line')
+  .attr('class','link')
+  .attr('stroke-width', d => 0.6 + d.weight * 1.2);
+
+const nodeSel = nodeLayer.selectAll('.node')
+  .data(DATA.nodes)
+  .enter().append('g')
+  .attr('class','node')
+  .call(d3.drag()
+    .on('start', dragstarted)
+    .on('drag', dragged)
+    .on('end', dragended));
+
+nodeSel.append('circle')
+  .attr('r', d => d.type === 'career' ? 12 : 9)
+  .attr('fill', d => GROUP_COLORS(d.group));
+
+nodeSel.append('text')
+  .attr('x', d => d.type === 'career' ? 14 : 12)
+  .attr('y', 4)
+  .text(d => d.id);
+
+const sim = d3.forceSimulation(DATA.nodes)
+  .force('link', d3.forceLink(DATA.links).id(d => d.id).distance(d => 110 - (d.weight*5)).strength(d => 0.4 + d.weight*0.06))
+  .force('charge', d3.forceManyBody().strength(-320))
+  .force('center', d3.forceCenter(W/2, H/2))
+  .force('collision', d3.forceCollide().radius(30));
+
+sim.on('tick', ()=>{
+  linkSel
+    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+    .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+  nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
+});
+
+/* Tooltip */
+const tip = d3.select('body').append('div').attr('class','tooltip').style('opacity',0);
+nodeSel.on('mouseover', (e,d)=>{
+  tip.style('opacity',1).html(`<b>${d.id}</b><br>${d.type} • ${d.group}`);
+}).on('mousemove', (e)=>{
+  tip.style('left', (e.clientX+12)+'px').style('top', (e.clientY+12)+'px');
+}).on('mouseout', ()=> tip.style('opacity',0));
+
+/* Neighbor map + degree */
+const neighbors = {};
+const degree = {};
+DATA.nodes.forEach(n => { neighbors[n.id] = new Set(); degree[n.id] = 0; });
+DATA.links.forEach(l=>{
+  const s = l.source.id ? l.source.id : l.source;
+  const t = l.target.id ? l.target.id : l.target;
+  neighbors[s].add(t); neighbors[t].add(s);
+  degree[s]++; degree[t]++;
+});
+
+/* Focus / highlight / details */
+let focused = null;
+const crumbs = [];
+const crumbsDiv = document.getElementById('crumbs');
+
+function pushCrumb(id){
+  if(crumbs[crumbs.length-1] === id) return;
+  crumbs.push(id);
+  renderCrumbs();
+}
+function renderCrumbs(){
+  crumbsDiv.innerHTML = '';
+  crumbs.forEach((c,i)=>{
+    const span = document.createElement('span');
+    span.className = 'crumb';
+    span.textContent = c;
+    span.onclick = ()=> { focusNode(c, false); crumbs.splice(i+1); renderCrumbs(); };
+    crumbsDiv.appendChild(span);
+  });
+}
+
+function highlight(id){
+  const focusMode = true; // always dim non-neighbors for concept browser feel
+  focused = id;
+
+  nodeSel.classed('highlight', d => d.id === id)
+         .classed('dimmed', d => focusMode && !(d.id === id || neighbors[id]?.has(d.id)));
+  linkSel.classed('dimmed', l => focusMode && !(l.source.id===id || l.target.id===id));
+}
+
+function focusNode(id, addCrumb=false){
+  const n = DATA.nodes.find(x=>x.id===id);
+  if(!n) return;
+  if(addCrumb) pushCrumb(id);
+
+  // center & zoom slightly
+  if(n.x!=null && n.y!=null){
+    const t = d3.zoomIdentity.translate(W/2 - n.x*1.1, H/2 - n.y*1.1).scale(1.1);
+    svg.transition().duration(350).call(zoom.transform, t);
+  }
+  highlight(id);
+  renderDetails(n);
+}
+
+nodeSel.on('click', (_,d)=> focusNode(d.id, true));
+svg.on('click', (e)=>{
+  if (e.target.tagName === 'svg'){
+    focused = null;
+    nodeSel.classed('highlight', false).classed('dimmed', false);
+    linkSel.classed('dimmed', false);
+    renderDetails(null);
+  }
+});
+
+/* Details panel */
+function renderDetails(n){
+  const selName = document.getElementById('selName');
+  const selType = document.getElementById('selType');
+  const selGroup = document.getElementById('selGroup');
+  const neigh = document.getElementById('neighbors');
+  const learn = document.getElementById('learnPath');
+
+  if(!n){
+    selName.textContent = 'None';
+    selType.textContent = '–';
+    selGroup.textContent = '–';
+    neigh.innerHTML = '<div class="muted">Click a node to see connected skills/careers.</div>';
+    learn.innerHTML = '';
+    return;
+  }
+  selName.textContent = n.id;
+  selType.textContent = n.type;
+  selGroup.textContent = n.group;
+
+  const ns = [...neighbors[n.id] || []];
+  const skills = ns.filter(x => (DATA.nodes.find(y=>y.id===x)?.type==='skill')).sort();
+  const careers = ns.filter(x => (DATA.nodes.find(y=>y.id===x)?.type==='career')).sort();
+
+  neigh.innerHTML = `
+    <div style="margin-top:6px"><b>Skills</b> (${skills.length})</div>
+    ${skills.length? `<ul>${skills.map(s=>`<li><a href="#" data-nav="${s}">${s}</a></li>`).join('')}</ul>` : '<div class="muted">None</div>'}
+    <div style="margin-top:6px"><b>Careers</b> (${careers.length})</div>
+    ${careers.length? `<ul>${careers.map(s=>`<li><a href="#" data-nav="${s}">${s}</a></li>`).join('')}</ul>` : '<div class="muted">None</div>'}
+  `;
+
+  // attach intra-details navigation
+  neigh.querySelectorAll('[data-nav]').forEach(a=>{
+    a.onclick = (ev)=>{ ev.preventDefault(); focusNode(a.dataset.nav, true); };
+  });
+
+  // Suggested Learning Path (careers only)
+  learn.innerHTML = '';
+  if(n.type==='career'){
+    const items = [];
+    (neighbors[n.id] || []).forEach(nb => {
+      const node = DATA.nodes.find(z => z.id===nb);
+      if(node && node.type==='skill'){
+        const link = DATA.links.find(l =>
+          (l.source.id?l.source.id:l.source)===n.id && (l.target.id?l.target.id:l.target)===nb ||
+          (l.target.id?l.target.id:l.target)===n.id && (l.source.id?l.source.id:l.source)===nb
+        );
+        const weight = link ? link.weight : 1;
+        const score = weight * (degree[nb] || 1);
+        items.push({ skill: nb, weight, deg: degree[nb], score, group: node.group });
+      }
+    });
+    items.sort((a,b)=> b.score - a.score);
+    const top = items.slice(0,5);
+    if(top.length){
+      top.forEach(it=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<b>${it.skill}</b> <span class="tag">${it.group}</span> <span class="tag">score ${it.score}</span>`;
+        learn.appendChild(li);
+      });
+    } else {
+      learn.innerHTML = `<div class="muted">No linked skills yet. Add links in the DATA section.</div>`;
+    }
+  }
+}
+
+/* Filters -> affect list + graph visibility */
+function filterGraph(){
+  nodeSel.style('display', d=>{
+    return passesFilters(d) ? null : 'none';
+  });
+  linkSel.style('display', l=>{
+    const s = (l.source.id? l.source : DATA.nodes.find(n=>n.id===l.source));
+    const t = (l.target.id? l.target : DATA.nodes.find(n=>n.id===l.target));
+    return (passesFilters(s) && passesFilters(t)) ? null : 'none';
+  });
+}
+
+/* Layout toggle: Force <-> Bipartite */
+document.getElementById('layoutForce').onclick = ()=> {
+  sim.alphaTarget(0.3).restart();
+  sim.force('x', null).force('y', null);
+  setTimeout(()=> sim.alphaTarget(0), 500);
+};
+document.getElementById('layoutBip').onclick = ()=> {
+  const xScale = d3.scalePoint().domain(['skill','career']).range([100, W-100]);
+  const yScale = d3.scalePoint().domain([...new Set(DATA.nodes.map(n=>n.group))]).range([80, H-80]);
+  sim.force('x', d3.forceX(d => xScale(d.type)).strength(0.5))
+     .force('y', d3.forceY(d => yScale(d.group)).strength(0.3))
+     .alpha(0.5)
+     .restart();
+};
+
+/* Drag */
+function dragstarted(event,d){ if(!event.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; }
+function dragged(event,d){ d.fx=event.x; d.fy=event.y; }
+function dragended(event,d){ if(!event.active) sim.alphaTarget(0); d.fx=null; d.fy=null; }
+
+/* Resize */
+window.addEventListener('resize', ()=>{
+  const W2 = document.getElementById('viz').clientWidth;
+  const H2 = document.getElementById('viz').clientHeight;
+  svg.attr('width', W2).attr('height', H2);
+  sim.force('center', d3.forceCenter(W2/2, H2/2)).alpha(0.3).restart();
+});
+
+/* Hook search enter */
+q.addEventListener('keydown', e=>{ if(e.key==='Enter') renderList(); });
+
+/* Done */
+</script>
+</body>
+</html>
