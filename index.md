@@ -45,6 +45,7 @@ Use the checklists, analyze your skill gaps, and save a 1-page prep sheet before
 - 🧪 Testers / QA → **[Open Checklist](coffee-shop.html?role=tester)**
 - 🧭 Business Systems Analysts → **[Open Checklist](coffee-shop.html?role=analyst)**
 
+Explore skills ↔ careers: [Interactive Map](skills-careers.html)
 > Your progress is saved **in your browser** (no sign-in).  
 > Use **Analyze My Skill Gaps** to get tailored next steps.
 
