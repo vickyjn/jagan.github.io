@@ -49,6 +49,7 @@ Explore skills ↔ careers: [Interactive Map](skills-careers.html)
 > Your progress is saved **in your browser** (no sign-in).  
 > Use **Analyze My Skill Gaps** to get tailored next steps.
 
+test -Explore visually: [Concept Browser](concept-browser.html)
 ---
 
 ## 🛠️ Live Tools & Demos
