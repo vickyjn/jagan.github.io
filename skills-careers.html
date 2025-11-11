@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Skills ↔ Careers Concept Browser</title>
+<meta name="description" content="Explore how skills map to careers—and careers to required skills—using an interactive D3 concept browser." />
+<style>
+  :root{
+    --bg:#faf8f6; --card:#ffffff; --ink:#2b2622; --muted:#6e635b;
+    --skill:#2e7d32; --career:#1565c0; --edge:#c7bdb6; --accent:#c2956b;
+    --dim:#d9d3cd;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  header{padding:14px 16px;border-bottom:3px solid var(--accent);background:linear-gradient(135deg,#fff,var(--bg))}
+  .wrap{max-width:1100px;margin:0 auto;padding:12px 16px 24px}
+  h1{margin:0 0 4px 0;font-size:22px}
+  .muted{color:var(--muted);font-size:14px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+  .control{background:var(--card);border:1px solid #e6ded7;border-radius:10px;padding:10px 12px;display:flex;gap:8px;align-items:center}
+  input[type="text"]{border:1px solid #dfd6cf;border-radius:8px;padding:8px 10px;min-width:230px}
+  button{border:none;border-radius:10px;padding:8px 12px;background:#3f342d;color:#fff;cursor:pointer}
+  button.alt{background:#e9e1da;color:#3f342d}
+  button.warn{background:#b33b2e}
+  .legend{display:flex;gap:10px;align-items:center}
+  .key{display:inline-flex;gap:6px;align-items:center;padding:4px 8px;border:1px solid #e6ded7;border-radius:999px;background:#fff}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .skill{background:var(--skill)}
+  .career{background:var(--career)}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:900px){.grid{grid-template-columns: 2fr 1fr}}
+  .panel{background:var(--card);border:1px solid #e6ded7;border-radius:14px;padding:12px}
+  #viz{width:100%;height:70vh}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .pill{display:inline-block;background:#f1e7de;color:#5a4638;border:1px solid #eadfd7;padding:3px 8px;border-radius:999px;font-size:12px}
+  .badge{font-size:11px;color:#5a4638;background:#f6efe9;border:1px solid #e7ddd4;border-radius:6px;padding:2px 6px;margin-left:6px}
+  footer{margin-top:18px;color:var(--muted);font-size:12px}
+  /* Graph */
+  .link{stroke:var(--edge);stroke-opacity:.6}
+  .node circle{stroke:#fff;stroke-width:1.5px}
+  .node text{font-size:12px;pointer-events:none}
+  .dimmed{opacity:.15}
+  .highlight{stroke:#000;stroke-width:2.2px}
+  .tooltip{
+    position:fixed; pointer-events:none; background:#fff; border:1px solid #e6ded7;
+    padding:6px 8px; border-radius:8px; font-size:12px; color:#3a312c; box-shadow:0 2px 8px rgba(0,0,0,.05)
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Skills ↔ Careers Concept Browser</h1>
+    <div class="muted">Click nodes to highlight related items. Use search and filters to explore paths from a skill to careers—and vice versa.</div>
+  </div>
+</header>
+
+<main class="wrap grid">
+  <section class="panel">
+    <div id="viz" role="img" aria-label="Force-directed graph showing skills and careers"></div>
+    <div class="hint">Tip: Click a node to focus; click empty space to reset. Drag nodes to re-arrange. Zoom with mousewheel / pinch.</div>
+  </section>
+
+  <aside class="panel">
+    <div class="controls">
+      <div class="control">
+        <input id="search" type="text" placeholder="Search skill or career…" />
+        <button id="btnSearch">Search</button>
+        <button id="btnClear" class="alt">Clear</button>
+      </div>
+      <div class="control legend">
+        <span class="key"><span class="dot skill"></span>Skill</span>
+        <span class="key"><span class="dot career"></span>Career</span>
+      </div>
+      <div class="control">
+        <button class="alt" data-filter="all">Show All</button>
+        <button class="alt" data-filter="skills">Only Skills</button>
+        <button class="alt" data-filter="careers">Only Careers</button>
+      </div>
+      <div class="control">
+        <label><input type="checkbox" id="focusMode"> Focus mode (dim others)</label>
+      </div>
+    </div>
+
+    <div>
+      <div class="pill">Selection</div>
+      <div id="selection" class="hint" style="margin-top:6px">None</div>
+      <div id="neighbors"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #ecdcd0;margin:14px 0" />
+
+    <div>
+      <div class="pill">About the Data</div>
+      <p class="hint">Edit the <code>DATA</code> array in this file to add your own skills & careers. Use <code>type: "skill"</code> or <code>"career"</code>.</p>
+      <p class="hint">Edges are simple <code>{ source: "Node Name", target: "Node Name", weight: 1 }</code>.</p>
+      <span class="badge">Local only</span> No tracking. Static page.
+    </div>
+  </aside>
+</main>
+
+<footer class="wrap">
+  Built with D3. Inspired by concept browsers. Curated for newcomers to Canadian tech.
+</footer>
+
+<!-- D3 -->
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+/* ========= Editable Data =========
+   - Add/rename nodes below. Keep names unique.
+   - type: "skill" or "career"
+   - edges connect names (source/target)
+*/
+const DATA = {
+  nodes: [
+    // Skills
+    { id:"Python", type:"skill" },
+    { id:"JavaScript", type:"skill" },
+    { id:"React", type:"skill" },
+    { id:"SQL", type:"skill" },
+    { id:"Data Visualization", type:"skill" },
+    { id:"Git & GitHub", type:"skill" },
+    { id:"APIs & REST", type:"skill" },
+    { id:"Accessibility (WCAG)", type:"skill" },
+    { id:"Jira/Confluence", type:"skill" },
+    { id:"Testing (Pytest/JUnit)", type:"skill" },
+    { id:"Docker", type:"skill" },
+    { id:"Cloud Basics (AWS/Azure)", type:"skill" },
+    { id:"Figma", type:"skill" },
+    { id:"User Research", type:"skill" },
+    { id:"Storytelling (Portfolio)", type:"skill" },
+
+    // Careers
+    { id:"Frontend Developer", type:"career" },
+    { id:"Backend Developer", type:"career" },
+    { id:"Full-stack Developer", type:"career" },
+    { id:"Data Analyst", type:"career" },
+    { id:"QA / Tester", type:"career" },
+    { id:"Business Systems Analyst", type:"career" },
+    { id:"UX/UI Designer", type:"career" },
+    { id:"ML Engineer", type:"career" }
+  ],
+  links: [
+    // Dev paths
+    { source:"JavaScript", target:"Frontend Developer", weight:1 },
+    { source:"React", target:"Frontend Developer", weight:1 },
+    { source:"Accessibility (WCAG)", target:"Frontend Developer", weight:1 },
+    { source:"APIs & REST", target:"Frontend Developer", weight:1 },
+    { source:"Git & GitHub", target:"Frontend Developer", weight:1 },
+
+    { source:"Python", target:"Backend Developer", weight:1 },
+    { source:"APIs & REST", target:"Backend Developer", weight:1 },
+    { source:"SQL", target:"Backend Developer", weight:1 },
+    { source:"Docker", target:"Backend Developer", weight:1 },
+    { source:"Cloud Basics (AWS/Azure)", target:"Backend Developer", weight:1 },
+    { source:"Git & GitHub", target:"Backend Developer", weight:1 },
+
+    { source:"JavaScript", target:"Full-stack Developer", weight:1 },
+    { source:"React", target:"Full-stack Developer", weight:1 },
+    { source:"Python", target:"Full-stack Developer", weight:1 },
+    { source:"APIs & REST", target:"Full-stack Developer", weight:1 },
+    { source:"SQL", target:"Full-stack Developer", weight:1 },
+    { source:"Docker", target:"Full-stack Developer", weight:1 },
+
+    // Data
+    { source:"Python", target:"Data Analyst", weight:1 },
+    { source:"SQL", target:"Data Analyst", weight:1 },
+    { source:"Data Visualization", target:"Data Analyst", weight:1 },
+    { source:"Storytelling (Portfolio)", target:"Data Analyst", weight:1 },
+    { source:"Jira/Confluence", target:"Data Analyst", weight:1 },
+
+    // QA
+    { source:"Testing (Pytest/JUnit)", target:"QA / Tester", weight:1 },
+    { source:"APIs & REST", target:"QA / Tester", weight:1 },
+    { source:"Jira/Confluence", target:"QA / Tester", weight:1 },
+    { source:"Git & GitHub", target:"QA / Tester", weight:1 },
+
+    // BSA
+    { source:"Jira/Confluence", target:"Business Systems Analyst", weight:1 },
+    { source:"Storytelling (Portfolio)", target:"Business Systems Analyst", weight:1 },
+    { source:"APIs & REST", target:"Business Systems Analyst", weight:1 },
+    { source:"SQL", target:"Business Systems Analyst", weight:1 },
+
+    // Design
+    { source:"Figma", target:"UX/UI Designer", weight:1 },
+    { source:"User Research", target:"UX/UI Designer", weight:1 },
+    { source:"Accessibility (WCAG)", target:"UX/UI Designer", weight:1 },
+    { source:"Storytelling (Portfolio)", target:"UX/UI Designer", weight:1 },
+
+    // ML Eng
+    { source:"Python", target:"ML Engineer", weight:1 },
+    { source:"SQL", target:"ML Engineer", weight:1 },
+    { source:"Docker", target:"ML Engineer", weight:1 },
+    { source:"Cloud Basics (AWS/Azure)", target:"ML Engineer", weight:1 },
+    { source:"Testing (Pytest/JUnit)", target:"ML Engineer", weight:1 }
+  ]
+};
+
+/* ========= D3 Graph ========= */
+const W = document.getElementById('viz').clientWidth;
+const H = document.getElementById('viz').clientHeight;
+const svg = d3.select('#viz').append('svg').attr('width', W).attr('height', H);
+
+const zoom = d3.zoom().scaleExtent([0.3, 3]).on('zoom', (e)=> g.attr('transform', e.transform));
+svg.call(zoom);
+
+const g = svg.append('g');
+const link = g.append('g').attr('stroke-width', 1.2).selectAll('.link');
+const node = g.append('g').selectAll('.node');
+
+const color = d => d.type === 'skill' ? getComputedStyle(document.documentElement).getPropertyValue('--skill')
+                                       : getComputedStyle(document.documentElement).getPropertyValue('--career');
+
+const sim = d3.forceSimulation(DATA.nodes)
+  .force('link', d3.forceLink(DATA.links).id(d => d.id).distance(90).strength(0.7))
+  .force('charge', d3.forceManyBody().strength(-320))
+  .force('center', d3.forceCenter(W/2, H/2))
+  .force('collision', d3.forceCollide().radius(30));
+
+let linkSel = link.data(DATA.links).enter()
+  .append('line')
+  .attr('class','link');
+
+let nodeSel = node.data(DATA.nodes).enter()
+  .append('g')
+  .attr('class','node')
+  .call(d3.drag()
+    .on('start', dragstarted)
+    .on('drag', dragged)
+    .on('end', dragended));
+
+nodeSel.append('circle')
+  .attr('r', d => d.type === 'career' ? 12 : 9)
+  .attr('fill', color);
+
+nodeSel.append('text')
+  .attr('x', d => d.type === 'career' ? 14 : 12)
+  .attr('y', 4)
+  .text(d => d.id);
+
+sim.on('tick', ()=>{
+  linkSel
+    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+    .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+  nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
+});
+
+/* Tooltip */
+const tip = d3.select('body').append('div').attr('class','tooltip').style('opacity',0);
+nodeSel.on('mouseover', (e,d)=>{
+  tip.style('opacity',1).html(`<b>${d.id}</b><br>${d.type === 'skill' ? 'Skill' : 'Career'}`);
+}).on('mousemove', (e)=>{
+  tip.style('left', (e.clientX+12)+'px').style('top', (e.clientY+12)+'px');
+}).on('mouseout', ()=>{
+  tip.style('opacity',0);
+});
+
+/* Neighbor map for highlighting */
+const neighbors = {};
+DATA.links.forEach(l=>{
+  neighbors[l.source.id ? l.source.id : l.source] = neighbors[l.source.id ? l.source.id : l.source] || new Set();
+  neighbors[l.target.id ? l.target.id : l.target] = neighbors[l.target.id ? l.target.id : l.target] || new Set();
+  const s = l.source.id ? l.source.id : l.source;
+  const t = l.target.id ? l.target.id : l.target;
+  neighbors[s].add(t);
+  neighbors[t].add(s);
+});
+
+let focused = null;
+function highlight(id){
+  const focusMode = document.getElementById('focusMode').checked;
+  focused = id;
+
+  nodeSel.classed('highlight', d => d.id === id)
+         .classed('dimmed', d => focusMode && !(d.id === id || neighbors[id]?.has(d.id)));
+  linkSel.classed('dimmed', l => focusMode && !(l.source.id===id || l.target.id===id));
+
+  const selDiv = document.getElementById('selection');
+  const neighDiv = document.getElementById('neighbors');
+  if(!id){
+    selDiv.textContent = 'None';
+    neighDiv.innerHTML = '';
+    return;
+  }
+  selDiv.innerHTML = `<b>${id}</b>`;
+  const list = [...(neighbors[id] || [])].sort().map(n => `<li>${n}</li>`).join('');
+  neighDiv.innerHTML = list ? `<ul>${list}</ul>` : `<div class="hint">No direct connections</div>`;
+}
+
+nodeSel.on('click', (_,d)=> highlight(d.id));
+svg.on('click', (e)=>{
+  if (e.target.tagName === 'svg') highlight(null);
+});
+
+/* Filters */
+document.querySelectorAll('[data-filter]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const f = btn.getAttribute('data-filter');
+    nodeSel.style('display', d=>{
+      if(f==='skills') return d.type==='skill' ? null : 'none';
+      if(f==='careers') return d.type==='career' ? null : 'none';
+      return null;
+    });
+    linkSel.style('display', l=>{
+      if(f==='skills') return (l.source.type==='skill' && l.target.type==='skill') ? null : null, // keep edges if at least one visible
+        (nodeVisible(l.source) && nodeVisible(l.target)) ? null : 'none';
+      if(f==='careers') return (nodeVisible(l.source) && nodeVisible(l.target)) ? null : 'none';
+      return null;
+    });
+    function nodeVisible(d){ return (f==='skills' && d.type==='skill') || (f==='careers' && d.type==='career') || (f==='all'); }
+  });
+});
+
+/* Search */
+document.getElementById('btnSearch').addEventListener('click', doSearch);
+document.getElementById('btnClear').addEventListener('click', ()=>{
+  document.getElementById('search').value=''; highlight(null);
+});
+document.getElementById('search').addEventListener('keydown', e=>{ if(e.key==='Enter') doSearch(); });
+
+function doSearch(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  if(!q){ highlight(null); return; }
+  const n = DATA.nodes.find(n=> n.id.toLowerCase()===q || n.id.toLowerCase().includes(q));
+  if(n){
+    // center on node
+    const t = d3.zoomIdentity.translate(W/2 - n.x*1.2, H/2 - n.y*1.2).scale(1.2);
+    svg.transition().duration(400).call(zoom.transform, t);
+    highlight(n.id);
+  }
+}
+
+/* Drag handlers */
+function dragstarted(event,d){
+  if(!event.active) sim.alphaTarget(0.3).restart();
+  d.fx = d.x; d.fy = d.y;
+}
+function dragged(event,d){
+  d.fx = event.x; d.fy = event.y;
+}
+function dragended(event,d){
+  if(!event.active) sim.alphaTarget(0);
+  d.fx = null; d.fy = null;
+}
+
+/* Resize */
+window.addEventListener('resize', ()=>{
+  const W2 = document.getElementById('viz').clientWidth;
+  const H2 = document.getElementById('viz').clientHeight;
+  svg.attr('width', W2).attr('height', H2);
+  sim.force('center', d3.forceCenter(W2/2, H2/2)).alpha(0.3).restart();
+});
+</script>
+</body>
+</html>
