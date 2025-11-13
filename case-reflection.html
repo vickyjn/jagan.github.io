@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Case Study Self-Check</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body{
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    background:#f5f3f0; margin:0; padding:12px;
+    color:#2c2520;
+  }
+  .card{
+    max-width:900px; margin:0 auto 16px auto;
+    background:#fff; border-radius:12px; padding:16px 18px;
+    box-shadow:0 2px 6px rgba(0,0,0,.04);
+    border:1px solid #e3d7cf;
+  }
+  h1{font-size:22px;margin:4px 0 8px;}
+  h2{font-size:18px;margin:8px 0;}
+  select, textarea{
+    width:100%; padding:8px 10px; border-radius:8px;
+    border:1px solid #d9cec6; font-size:14px;
+    box-sizing:border-box;
+  }
+  textarea{min-height:80px; resize:vertical;}
+  label{font-weight:600; font-size:14px;}
+  .question-block{margin:10px 0 14px; border-top:1px dashed #e2d6cc; padding-top:10px;}
+  .row{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:4px;}
+  .score-select{width:auto; padding:4px 6px;}
+  button{
+    border:none; background:#3f342d; color:#fff;
+    padding:8px 14px; border-radius:999px;
+    font-size:14px; cursor:pointer; margin-top:8px;
+  }
+  button.secondary{background:#efe6de;color:#3f342d;}
+  .pill{
+    display:inline-block; padding:4px 10px; border-radius:999px;
+    font-size:11px; background:#f3e7de; color:#5b4637;
+    border:1px solid #e2d4c7; margin-left:4px;
+  }
+  .result{margin-top:10px; padding:10px; border-radius:8px; background:#f7f1ea;}
+  .muted{color:#7a6b61;font-size:13px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Case Study Self-Check</h1>
+  <p class="muted">
+    Choose a case study, reflect on your answers, and rate your confidence.
+    This isn’t an exam – it’s a mirror to see where you’re strong and where to grow.
+  </p>
+  <label for="caseSelect">Select a case study</label>
+  <select id="caseSelect">
+    <optgroup label="Core Cases">
+      <option value="login">Case 1 – Identity Login Failure (Dev/QA/Arch)</option>
+      <option value="requirements">Case 2 – Misaligned Requirements (BA/PM/UX)</option>
+      <option value="accessibility">Case 3 – Checkout Accessibility Complaint (UX/FE)</option>
+      <option value="pipeline">Case 4 – Data Pipeline Bottleneck (Data/ML)</option>
+      <option value="security">Case 5 – Suspicious Login Security Incident (Security/Cloud)</option>
+    </optgroup>
+    <optgroup label="UX Lab">
+      <option value="ux_form">Case 6 – Credit Card Form Drop-offs (Pure UX)</option>
+    </optgroup>
+    <optgroup label="DevOps Lab">
+      <option value="devops_friday">Case 7 – Friday Deployments Breaking (Pure DevOps)</option>
+    </optgroup>
+    <optgroup label="BSA Lab">
+      <option value="bsa_conflict">Case 8 – Conflicting Stakeholders (Pure BSA)</option>
+    </optgroup>
+    <optgroup label="Mobile Lab">
+      <option value="mobile_crash">Case 9 – Mobile App Crashes in Production (Pure Mobile Dev)</option>
+    </optgroup>
+  </select>
+</div>
+
+<div class="card" id="caseContainer">
+  <!-- Questions will be injected here -->
+</div>
+
+<script>
+const CASES = {
+  login: {
+    title: "Case 1 – Identity Login Failure",
+    focus: "Debugging • APIs • Communication",
+    questions: [
+      "What would you check first, and why?",
+      "How would you communicate status to your team lead?",
+      "What diagnostic tools would you use (e.g., Postman, logs, cloud console)?",
+      "How would you differentiate between a backend bug vs a config issue?",
+      "If you had to prepare a fix, how would you ensure it doesn’t break something else?"
+    ]
+  },
+  requirements: {
+    title: "Case 2 – Misaligned Requirements",
+    focus: "Requirements • Stakeholders • Documentation",
+    questions: [
+      "What questions would you ask to uncover the actual requirement?",
+      "How would you validate expectations with the stakeholder?",
+      "How would you document it (user stories, ACs, workflows)?",
+      "How would you prevent misalignment next sprint?",
+      "What soft skills are most important here?"
+    ]
+  },
+  accessibility: {
+    title: "Case 3 – Checkout Accessibility Complaint",
+    focus: "Accessibility • Empathy • UX/Frontend",
+    questions: [
+      "How would you test for accessibility issues today?",
+      "Which WCAG guidelines might apply?",
+      "Which tools would you use (axe, Lighthouse, screen readers)?",
+      "How would you collaborate with developers to fix issues?",
+      "What improvements would you propose immediately?"
+    ]
+  },
+  pipeline: {
+    title: "Case 4 – Data Pipeline Bottleneck",
+    focus: "Data Pipelines • Performance • Communication",
+    questions: [
+      "How would you determine if the issue is code, data volume, or infra?",
+      "What logs/metrics would you inspect first?",
+      "How would you approach optimization?",
+      "What would you include in a status update to your manager?",
+      "If you redesigned the pipeline, what improvements would you consider?"
+    ]
+  },
+  security: {
+    title: "Case 5 – Suspicious Login Security Incident",
+    focus: "Security • Investigation • Risk",
+    questions: [
+      "What information would you gather first?",
+      "What tools would you use (SIEM, IAM logs, audit logs)?",
+      "How would you decide if this is malicious or benign?",
+      "What immediate steps would you take to protect the user?",
+      "How would you document the incident?"
+    ]
+  },
+  ux_form: {
+    title: "Case 6 – Credit Card Form Drop-offs",
+    focus: "UX Research • Conversion • Form Design",
+    questions: [
+      "What data or evidence would you want to see before proposing solutions?",
+      "How would you investigate the drop-off on step 2 specifically?",
+      "What UX methods would you use (usability tests, heuristics, recordings, surveys)?",
+      "Suggest 2–3 design changes you might test and why.",
+      "How would you explain your findings and recommendations to a non-UX stakeholder?"
+    ]
+  },
+  devops_friday: {
+    title: "Case 7 – Friday Deployments Breaking",
+    focus: "CI/CD • Reliability • Release Strategy",
+    questions: [
+      "What parts of the pipeline would you inspect first (build, tests, infra, config, traffic)?",
+      "What metrics or dashboards would you check (CI, Kubernetes, APM, logs)?",
+      "How would you determine whether the problem is in code, infra, or traffic load?",
+      "What improvements would you suggest to make releases safer (canary, blue-green, feature flags, etc.)?",
+      "How would you communicate a short-term mitigation and a long-term plan to the team?"
+    ]
+  },
+  bsa_conflict: {
+    title: "Case 8 – Conflicting Stakeholders",
+    focus: "Facilitation • Prioritization • Documentation",
+    questions: [
+      "How would you structure a conversation to surface and clarify each stakeholder’s goals?",
+      "How would you document the requirements so that conflicts are clear and visible?",
+      "What techniques would you use to help the group prioritize?",
+      "How would you propose a compromise balancing risk, UX, and technical feasibility?",
+      "How would you ensure decisions are communicated and traceable to user stories/ACs?"
+    ]
+  },
+  mobile_crash: {
+    title: "Case 9 – Mobile App Crashes in Production",
+    focus: "Mobile Debugging • Stability • Communication",
+    questions: [
+      "What information would you look at first in the crash reports?",
+      "How would you reproduce the issue locally or in a test environment?",
+      "What tools or practices would you use to diagnose and fix the crash?",
+      "If you can’t fully fix it right away, what workaround or patch might you ship quickly?",
+      "How would you communicate the plan and impact to product and stakeholders?"
+    ]
+  }
+};
+
+const container = document.getElementById("caseContainer");
+const select = document.getElementById("caseSelect");
+
+function renderCase(key){
+  const data = CASES[key];
+  container.innerHTML = "";
+  const h = document.createElement("h2");
+  h.textContent = data.title;
+  const focus = document.createElement("div");
+  focus.className = "muted";
+  focus.innerHTML = `Focus areas: <span class="pill">${data.focus}</span>`;
+  container.appendChild(h);
+  container.appendChild(focus);
+
+  data.questions.forEach((q, idx)=>{
+    const block = document.createElement("div");
+    block.className = "question-block";
+
+    const label = document.createElement("label");
+    label.textContent = `${idx+1}. ${q}`;
+    block.appendChild(label);
+
+    const ta = document.createElement("textarea");
+    ta.id = `q${idx+1}_text`;
+    ta.placeholder = "Write your answer here…";
+    block.appendChild(ta);
+
+    const row = document.createElement("div");
+    row.className = "row";
+    const span = document.createElement("span");
+    span.className = "muted";
+    span.textContent = "How confident/clear was your answer? (1 = low, 5 = high)";
+    row.appendChild(span);
+
+    const sel = document.createElement("select");
+    sel.id = `q${idx+1}_score`;
+    sel.className = "score-select";
+    [ "", 1,2,3,4,5 ].forEach(v=>{
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v === "" ? "--" : v;
+      sel.appendChild(opt);
+    });
+    row.appendChild(sel);
+
+    block.appendChild(row);
+    container.appendChild(block);
+  });
+
+  const btnRow = document.createElement("div");
+  const btn = document.createElement("button");
+  btn.textContent = "Calculate my self-score";
+  btn.onclick = ()=> scoreCase(data);
+  btnRow.appendChild(btn);
+
+  const reset = document.createElement("button");
+  reset.textContent = "Clear answers";
+  reset.className = "secondary";
+  reset.style.marginLeft = "8px";
+  reset.onclick = ()=> renderCase(key);
+  btnRow.appendChild(reset);
+
+  container.appendChild(btnRow);
+
+  const result = document.createElement("div");
+  result.id = "result";
+  result.className = "result";
+  result.innerHTML = "<span class='muted'>Your results will appear here.</span>";
+  container.appendChild(result);
+}
+
+function scoreCase(data){
+  let total = 0;
+  let count = 0;
+  for(let i=1;i<=data.questions.length;i++){
+    const sel = document.getElementById(`q${i}_score`);
+    if(sel && sel.value){
+      total += parseInt(sel.value,10);
+      count++;
+    }
+  }
+  const resultDiv = document.getElementById("result");
+  if(count === 0){
+    resultDiv.innerHTML = "<span class='muted'>Please rate at least one answer to see a score.</span>";
+    return;
+  }
+  const avg = (total / count).toFixed(1);
+  let msg = "";
+  if(avg < 2){
+    msg = "You’re just starting out – great that you’re reflecting. Focus on understanding the scenario and basic tools.";
+  } else if(avg < 3.5){
+    msg = "You’re on your way. Try to be more specific with tools, steps, and how you’d communicate.";
+  } else if(avg < 4.5){
+    msg = "Strong base. You can now refine your answers with more structure, metrics, and stakeholder focus.";
+  } else {
+    msg = "Excellent self-rating. Challenge yourself with harder scenarios or ask someone to review your answers.";
+  }
+  resultDiv.innerHTML = `
+    <div><b>Your self-score:</b> ${avg} / 5</div>
+    <div class="muted" style="margin-top:6px">${msg}</div>
+  `;
+}
+
+select.addEventListener("change", ()=> renderCase(select.value));
+
+// initial render
+renderCase(select.value);
+</script>
+</body>
+</html>
