@@ -51,7 +51,71 @@ Explore skills ↔ careers: [Interactive Map](skills-careers.html)
 
 test -Explore visually: [Concept Browser](concept-browser.html)
 ---
+---
+## ☕ Case Studies Lab
 
+Practice thinking like the role — not just ticking skills.
+
+Each lab gives you realistic scenarios, reflection questions, and a self-check tool.
+
+### 🎨 UX Lab  
+For UX Designers and Frontend folks who care about users.
+
+- **Case 3 – Checkout Accessibility Complaint**  
+  Focus: accessibility, empathy, collaboration with dev  
+- **Case 6 – Credit Card Form Drop-offs**  
+  Focus: UX research, conversion, form design
+
+👉 Try them in the [Case Study Self-Check Tool](case-self-check.html) and in the PDF workbook.
+
+---
+
+### ⚙️ DevOps Lab  
+
+For DevOps / SRE / Platform engineers.
+
+- **Case 7 – Friday Deployments Breaking**  
+  Focus: CI/CD, reliability, release strategy
+
+👉 Reflect in the [self-check tool](case-self-check.html) and use your notes to plan what to learn next.
+
+---
+
+### 🧭 BSA Lab  
+
+For Business Systems Analysts, Product-minded folks, and hybrid roles.
+
+- **Case 2 – Misaligned Requirements**  
+  Focus: requirements, stakeholder alignment, documentation  
+- **Case 8 – Conflicting Stakeholders**  
+  Focus: facilitation, prioritization, decision tracking
+
+👉 Pick one case, write your answers, then score your clarity and confidence.
+
+---
+
+### 📱 Mobile Lab  
+
+For Mobile Developers (iOS, Android, React Native, Flutter).
+
+- **Case 9 – Mobile App Crashes in Production**  
+  Focus: debugging, crash analysis, communication with product
+
+👉 Use the [self-check tool](case-self-check.html) after you think through your approach.
+
+---
+
+### 📄 Workbook
+
+Prefer pen and paper?
+
+Download the **PDF workbook** with all case studies and writing space:
+
+- [📄 Coffee Shop Case Study Workbook](CoffeeShop_CaseStudy_Workbook.pdf)
+
+> Tip: Use these cases as interview practice. Answer out loud, then refine your answers in writing.
+
+---
 ## 🛠️ Live Tools & Demos
 Practical, free tools you can use right now.
 
@@ -62,8 +126,6 @@ Practical, free tools you can use right now.
 - 🗂️ **Application Tracker (Local)** → _link_
 
 > Want to contribute a tool? Open a PR or submit an issue with a short description.
-
-
 ---
 
 ## 🤝 Contact / Connect
