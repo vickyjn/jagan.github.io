@@ -63,6 +63,32 @@
     position:fixed; pointer-events:none; background:#fff; border:1px solid #e6ded7;
     padding:6px 8px; border-radius:8px; font-size:12px; color:#3a312c; box-shadow:0 2px 8px rgba(0,0,0,.05)
   }
+
+  /* Replace your existing @media with this */
+.layout{
+  display:grid; grid-template-columns: 280px 1fr 320px;
+  gap:12px; height:calc(100vh - 74px); padding:12px;
+}
+@media (max-width: 1100px){
+  .layout{ grid-template-columns: 1fr; height:auto; }
+  #viz{ height: 56vh; }         /* give graph a good mobile height */
+}
+@media (max-width: 640px){
+  header{ padding:14px }
+  h1{ font-size:18px }
+  .phead, .cctrl{ padding:10px }
+  .search input{ padding:12px 14px; font-size:16px }  /* bigger tap target */
+  button{ padding:12px 14px; border-radius:12px }
+  .chip{ padding:6px 12px; font-size:13px }
+  .node text{ font-size:11px }
+}
+
+/* Make headers sticky for usability */
+#breadcrumbs, .phead { position: sticky; top: 0; z-index: 2 }
+
+/* Improve focus outline for a11y */
+:focus-visible{ outline: 3px solid #c2956b; outline-offset: 2px }
+
 </style>
 </head>
 <body>
@@ -100,6 +126,9 @@
     </div>
     <div id="viz" aria-label="Concept graph"></div>
     <div class="cctrl">
+      <button id="zoomIn"  class="alt" aria-label="Zoom in">＋</button>
+      <button id="zoomOut" class="alt" aria-label="Zoom out">－</button>
+      <button id="zoomReset" class="alt" aria-label="Reset zoom">Reset</button>
       <button id="layoutForce">Force Layout</button>
       <button id="layoutBip" class="alt">Bipartite (Skills ⇄ Careers)</button>
       <span class="hint">Click a node to focus; click empty space to reset. Drag to re-arrange. Scroll to zoom.</span>
@@ -109,7 +138,7 @@
   <!-- RIGHT: Details -->
   <aside class="panel" id="right">
     <div class="phead"><b>Details</b></div>
-    <div class="pbody" id="details">
+    <div class="pbody" id="details" aria-live="polite">
       <div class="kv"><b>Selection:</b> <span id="selName">None</span></div>
       <div class="kv"><b>Type:</b> <span id="selType">–</span></div>
       <div class="kv"><b>Group:</b> <span id="selGroup">–</span></div>
@@ -127,107 +156,107 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+
 <script>
-/* ========= Editable Data =========
-   Node: { id, type: "skill"|"career", group: "Frontend"|"Data"|... }
-   Link: { source, target, weight }  // weight controls thickness (1..5 typical)
-*/
-const DATA = {
-  nodes: [
-    // Skills
-    { id:"Python", type:"skill", group:"Data" },
-    { id:"JavaScript", type:"skill", group:"Frontend" },
-    { id:"React", type:"skill", group:"Frontend" },
-    { id:"SQL", type:"skill", group:"Data" },
-    { id:"Data Visualization", type:"skill", group:"Data" },
-    { id:"Git & GitHub", type:"skill", group:"Core" },
-    { id:"APIs & REST", type:"skill", group:"Core" },
-    { id:"Accessibility (WCAG)", type:"skill", group:"Frontend" },
-    { id:"Jira/Confluence", type:"skill", group:"Product" },
-    { id:"Testing (Pytest/JUnit)", type:"skill", group:"Quality" },
-    { id:"Docker", type:"skill", group:"Cloud" },
-    { id:"Cloud Basics (AWS/Azure)", type:"skill", group:"Cloud" },
-    { id:"Figma", type:"skill", group:"Product" },
-    { id:"User Research", type:"skill", group:"Product" },
-    { id:"Storytelling (Portfolio)", type:"skill", group:"Product" },
+/* =========================
+   External DATA loader
+   ========================= */
+async function loadGraph(url) {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load ${url}`);
+  return await res.json();
+}
 
-    // Careers
-    { id:"Frontend Developer", type:"career", group:"Frontend" },
-    { id:"Backend Developer", type:"career", group:"Cloud" },
-    { id:"Full-stack Developer", type:"career", group:"Core" },
-    { id:"Data Analyst", type:"career", group:"Data" },
-    { id:"QA / Tester", type:"career", group:"Quality" },
-    { id:"Business Systems Analyst", type:"career", group:"Product" },
-    { id:"UX/UI Designer", type:"career", group:"Product" },
-    { id:"ML Engineer", type:"career", group:"Data" }
-  ],
-  links: [
-    // Dev (weights indicate strength)
-    { source:"JavaScript", target:"Frontend Developer", weight:5 },
-    { source:"React", target:"Frontend Developer", weight:5 },
-    { source:"Accessibility (WCAG)", target:"Frontend Developer", weight:3 },
-    { source:"APIs & REST", target:"Frontend Developer", weight:3 },
-    { source:"Git & GitHub", target:"Frontend Developer", weight:3 },
+/* =============== Globals the rest of the code uses =============== */
+let DATA = null;
+let neighbors = {}, degree = {};
+let typeFilter = 'all';
+let groupFilter = new Set();
 
-    { source:"Python", target:"Backend Developer", weight:4 },
-    { source:"APIs & REST", target:"Backend Developer", weight:4 },
-    { source:"SQL", target:"Backend Developer", weight:3 },
-    { source:"Docker", target:"Backend Developer", weight:3 },
-    { source:"Cloud Basics (AWS/Azure)", target:"Backend Developer", weight:3 },
-    { source:"Git & GitHub", target:"Backend Developer", weight:3 },
-
-    { source:"JavaScript", target:"Full-stack Developer", weight:4 },
-    { source:"React", target:"Full-stack Developer", weight:4 },
-    { source:"Python", target:"Full-stack Developer", weight:3 },
-    { source:"APIs & REST", target:"Full-stack Developer", weight:4 },
-    { source:"SQL", target:"Full-stack Developer", weight:2 },
-    { source:"Docker", target:"Full-stack Developer", weight:2 },
-
-    // Data
-    { source:"Python", target:"Data Analyst", weight:4 },
-    { source:"SQL", target:"Data Analyst", weight:5 },
-    { source:"Data Visualization", target:"Data Analyst", weight:5 },
-    { source:"Storytelling (Portfolio)", target:"Data Analyst", weight:3 },
-    { source:"Jira/Confluence", target:"Data Analyst", weight:2 },
-
-    // QA
-    { source:"Testing (Pytest/JUnit)", target:"QA / Tester", weight:5 },
-    { source:"APIs & REST", target:"QA / Tester", weight:3 },
-    { source:"Jira/Confluence", target:"QA / Tester", weight:4 },
-    { source:"Git & GitHub", target:"QA / Tester", weight:3 },
-
-    // BSA
-    { source:"Jira/Confluence", target:"Business Systems Analyst", weight:5 },
-    { source:"Storytelling (Portfolio)", target:"Business Systems Analyst", weight:4 },
-    { source:"APIs & REST", target:"Business Systems Analyst", weight:3 },
-    { source:"SQL", target:"Business Systems Analyst", weight:3 },
-
-    // Design
-    { source:"Figma", target:"UX/UI Designer", weight:5 },
-    { source:"User Research", target:"UX/UI Designer", weight:5 },
-    { source:"Accessibility (WCAG)", target:"UX/UI Designer", weight:3 },
-    { source:"Storytelling (Portfolio)", target:"UX/UI Designer", weight:4 },
-
-    // ML Eng
-    { source:"Python", target:"ML Engineer", weight:5 },
-    { source:"SQL", target:"ML Engineer", weight:4 },
-    { source:"Docker", target:"ML Engineer", weight:4 },
-    { source:"Cloud Basics (AWS/Azure)", target:"ML Engineer", weight:4 },
-    { source:"Testing (Pytest/JUnit)", target:"ML Engineer", weight:3 }
-  ]
-};
-
-/* ========= Colors by Group ========= */
-const GROUP_COLORS = d3.scaleOrdinal()
-  .domain([...new Set(DATA.nodes.map(n => n.group))])
-  .range(["#1565c0","#2e7d32","#8e24aa","#ef6c00","#00897b","#5d4037","#c62828","#6d4c41"]);
-
-/* ========= Concept List (left) ========= */
 const q = document.getElementById('q');
 const conceptList = document.getElementById('conceptList');
-let typeFilter = 'all';
-let groupFilter = new Set(); // chips
 
+let svg, g, zoom, sim, nodeSel, linkSel;
+let W, H;
+
+const crumbs = [];
+const crumbsDiv = document.getElementById('crumbs');
+
+/* =========================
+   Bootstrap
+   ========================= */
+init().catch(err => {
+  console.error(err);
+  document.body.innerHTML = "<div style='padding:24px;font-family:sans-serif'>❌ Couldn't load graph data. Check <code>data/graph.json</code> path or CORS settings.</div>";
+});
+
+async function init(){
+  const url = new URL(location.href);
+  const dataUrl = url.searchParams.get('data') || 'data/graph.json';
+  DATA = await loadGraph(dataUrl);
+
+  // Build neighbor maps
+  neighbors = {}; degree = {};
+  DATA.nodes.forEach(n => { neighbors[n.id] = new Set(); degree[n.id] = 0; });
+  DATA.links.forEach(l=>{
+    neighbors[l.source] = neighbors[l.source] || new Set();
+    neighbors[l.target] = neighbors[l.target] || new Set();
+    neighbors[l.source].add(l.target);
+    neighbors[l.target].add(l.source);
+    degree[l.source]++; degree[l.target]++;
+  });
+
+  renderFilters();
+  renderList();
+  buildGraph();
+
+  // Type chips
+  document.querySelectorAll('.chip.type').forEach(c=>{
+    c.onclick = ()=>{
+      document.querySelectorAll('.chip.type').forEach(x=>x.classList.remove('active'));
+      c.classList.add('active');
+      typeFilter = c.dataset.type;
+      renderList();
+      filterGraph();
+    };
+  });
+  document.getElementById('btnFind').onclick = ()=> renderList();
+  q.addEventListener('keydown', e=>{ if(e.key==='Enter') renderList(); });
+
+  // Layout toggles
+  document.getElementById('layoutForce').onclick = ()=> {
+    sim.alphaTarget(0.3).restart();
+    sim.force('x', null).force('y', null);
+    setTimeout(()=> sim.alphaTarget(0), 500);
+  };
+  document.getElementById('layoutBip').onclick = ()=> {
+    const xScale = d3.scalePoint().domain(['skill','career']).range([100, W-100]);
+    const yScale = d3.scalePoint().domain([...new Set(DATA.nodes.map(n=>n.group))]).range([80, H-80]);
+    sim.force('x', d3.forceX(d => xScale(d.type)).strength(0.5))
+       .force('y', d3.forceY(d => yScale(d.group)).strength(0.3))
+       .alpha(0.5)
+       .restart();
+  };
+
+  // Resize
+  window.addEventListener('resize', ()=>{
+    const W2 = document.getElementById('viz').clientWidth;
+    const H2 = document.getElementById('viz').clientHeight;
+    svg.attr('width', W2).attr('height', H2);
+    sim.force('center', d3.forceCenter(W2/2, H2/2)).alpha(0.3).restart();
+  });
+
+  // Optional deep-link focus
+  const focusParam = url.searchParams.get('focus');
+  if (focusParam){
+    // wait a tick so positions exist
+    setTimeout(()=> focusNode(focusParam, true), 400);
+  }
+}
+
+/* =========================
+   Filters (groups) + List
+   ========================= */
 function renderFilters(){
   const cont = document.getElementById('filters');
   cont.innerHTML = '';
@@ -248,19 +277,6 @@ function renderFilters(){
     cont.appendChild(s);
   });
 }
-renderFilters();
-
-document.querySelectorAll('.chip.type').forEach(c=>{
-  c.onclick = ()=>{
-    document.querySelectorAll('.chip.type').forEach(x=>x.classList.remove('active'));
-    c.classList.add('active');
-    typeFilter = c.dataset.type;
-    renderList();
-    filterGraph();
-  };
-});
-
-document.getElementById('btnFind').onclick = ()=> renderList();
 
 function passesFilters(n){
   const tOk = (typeFilter==='all' || n.type===typeFilter);
@@ -279,87 +295,98 @@ function renderList(){
       conceptList.appendChild(li);
     });
 }
-renderList();
 
-/* ========= Graph (center) ========= */
-const W = document.getElementById('viz').clientWidth;
-const H = document.getElementById('viz').clientHeight;
-const svg = d3.select('#viz').append('svg').attr('width', W).attr('height', H);
+/* =========================
+   Graph
+   ========================= */
+function buildGraph(){
+  // Colors by group
+  const GROUP_COLORS = d3.scaleOrdinal()
+    .domain([...new Set(DATA.nodes.map(n => n.group))])
+    .range(["#1565c0","#2e7d32","#8e24aa","#ef6c00","#00897b","#5d4037","#c62828","#6d4c41"]);
 
-const zoom = d3.zoom().scaleExtent([0.3, 3]).on('zoom', (e)=> g.attr('transform', e.transform));
-svg.call(zoom);
+  W = document.getElementById('viz').clientWidth;
+  H = document.getElementById('viz').clientHeight;
+  svg = d3.select('#viz').append('svg').attr('width', W).attr('height', H);
 
-const g = svg.append('g');
-const linkLayer = g.append('g').attr('stroke-linecap','round');
-const nodeLayer = g.append('g');
+  zoom = d3.zoom().scaleExtent([0.3, 3]).on('zoom', (e)=> g.attr('transform', e.transform));
+  svg.call(zoom);
 
-const linkSel = linkLayer.selectAll('.link')
-  .data(DATA.links)
-  .enter().append('line')
-  .attr('class','link')
-  .attr('stroke-width', d => 0.6 + d.weight * 1.2);
+  g = svg.append('g');
+  const linkLayer = g.append('g').attr('stroke-linecap','round');
+  const nodeLayer = g.append('g');
 
-const nodeSel = nodeLayer.selectAll('.node')
-  .data(DATA.nodes)
-  .enter().append('g')
-  .attr('class','node')
-  .call(d3.drag()
-    .on('start', dragstarted)
-    .on('drag', dragged)
-    .on('end', dragended));
+  linkSel = linkLayer.selectAll('.link')
+    .data(DATA.links)
+    .enter().append('line')
+    .attr('class','link')
+    .attr('stroke','#c7bdb6')
+    .attr('stroke-opacity',0.6)
+    .attr('stroke-width', d => 0.6 + d.weight * 1.2);
 
-nodeSel.append('circle')
-  .attr('r', d => d.type === 'career' ? 12 : 9)
-  .attr('fill', d => GROUP_COLORS(d.group));
+  nodeSel = nodeLayer.selectAll('.node')
+    .data(DATA.nodes)
+    .enter().append('g')
+    .attr('class','node')
+    .call(d3.drag()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended));
 
-nodeSel.append('text')
-  .attr('x', d => d.type === 'career' ? 14 : 12)
-  .attr('y', 4)
-  .text(d => d.id);
+  nodeSel.append('circle')
+    .attr('r', d => d.type === 'career' ? 12 : 9)
+    .attr('fill', d => GROUP_COLORS(d.group));
 
-const sim = d3.forceSimulation(DATA.nodes)
-  .force('link', d3.forceLink(DATA.links).id(d => d.id).distance(d => 110 - (d.weight*5)).strength(d => 0.4 + d.weight*0.06))
-  .force('charge', d3.forceManyBody().strength(-320))
-  .force('center', d3.forceCenter(W/2, H/2))
-  .force('collision', d3.forceCollide().radius(30));
-
-sim.on('tick', ()=>{
-  linkSel
-    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-    .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-  nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
+  nodeSel.append('text')
+    .attr('x', d => d.type === 'career' ? 14 : 12)
+    .attr('y', 4)
+    .text(d => d.id);
+   
+  nodeSel.attr('tabindex', 0).attr('role','button').attr('aria-label', d=>`${d.id} ${d.type} in ${d.group}`);
+  nodeSel.on('keydown', (e,d)=>{
+  if(e.key==='Enter' || e.key===' '){ e.preventDefault(); focusNode(d.id, true); }
 });
+  
+  // Force sim
+  sim = d3.forceSimulation(DATA.nodes)
+    .force('link', d3.forceLink(DATA.links).id(d => d.id)
+      .distance(d => 110 - (d.weight*5))
+      .strength(d => 0.4 + d.weight*0.06))
+    .force('charge', d3.forceManyBody().strength(-320))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide().radius(30));
 
-/* Tooltip */
-const tip = d3.select('body').append('div').attr('class','tooltip').style('opacity',0);
-nodeSel.on('mouseover', (e,d)=>{
-  tip.style('opacity',1).html(`<b>${d.id}</b><br>${d.type} • ${d.group}`);
-}).on('mousemove', (e)=>{
-  tip.style('left', (e.clientX+12)+'px').style('top', (e.clientY+12)+'px');
-}).on('mouseout', ()=> tip.style('opacity',0));
+  sim.on('tick', ()=>{
+    linkSel.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+           .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
 
-/* Neighbor map + degree */
-const neighbors = {};
-const degree = {};
-DATA.nodes.forEach(n => { neighbors[n.id] = new Set(); degree[n.id] = 0; });
-DATA.links.forEach(l=>{
-  const s = l.source.id ? l.source.id : l.source;
-  const t = l.target.id ? l.target.id : l.target;
-  neighbors[s].add(t); neighbors[t].add(s);
-  degree[s]++; degree[t]++;
-});
+  // Tooltip
+  const tip = d3.select('body').append('div').attr('class','tooltip').style('opacity',0);
+  nodeSel.on('mouseover', (e,d)=>{
+    tip.style('opacity',1).html(`<b>${d.id}</b><br>${d.type} • ${d.group}`);
+  }).on('mousemove', (e)=>{
+    tip.style('left', (e.clientX+12)+'px').style('top', (e.clientY+12)+'px');
+  }).on('mouseout', ()=> tip.style('opacity',0));
 
-/* Focus / highlight / details */
-let focused = null;
-const crumbs = [];
-const crumbsDiv = document.getElementById('crumbs');
+  // Click handlers
+  nodeSel.on('click', (_,d)=> focusNode(d.id, true));
+  svg.on('click', (e)=>{
+    if (e.target.tagName === 'svg'){
+      nodeSel.classed('highlight', false).classed('dimmed', false);
+      linkSel.classed('dimmed', false);
+      renderDetails(null);
+    }
+  });
+}
 
+/* =========================
+   Focus / details / helpers
+   ========================= */
 function pushCrumb(id){
   if(crumbs[crumbs.length-1] === id) return;
   crumbs.push(id);
-  renderCrumbs();
-}
-function renderCrumbs(){
   crumbsDiv.innerHTML = '';
   crumbs.forEach((c,i)=>{
     const span = document.createElement('span');
@@ -369,11 +396,10 @@ function renderCrumbs(){
     crumbsDiv.appendChild(span);
   });
 }
+function renderCrumbs(){ /* filled in pushCrumb */ }
 
 function highlight(id){
-  const focusMode = true; // always dim non-neighbors for concept browser feel
-  focused = id;
-
+  const focusMode = true; // dim non-neighbors
   nodeSel.classed('highlight', d => d.id === id)
          .classed('dimmed', d => focusMode && !(d.id === id || neighbors[id]?.has(d.id)));
   linkSel.classed('dimmed', l => focusMode && !(l.source.id===id || l.target.id===id));
@@ -393,17 +419,6 @@ function focusNode(id, addCrumb=false){
   renderDetails(n);
 }
 
-nodeSel.on('click', (_,d)=> focusNode(d.id, true));
-svg.on('click', (e)=>{
-  if (e.target.tagName === 'svg'){
-    focused = null;
-    nodeSel.classed('highlight', false).classed('dimmed', false);
-    linkSel.classed('dimmed', false);
-    renderDetails(null);
-  }
-});
-
-/* Details panel */
 function renderDetails(n){
   const selName = document.getElementById('selName');
   const selType = document.getElementById('selType');
@@ -434,7 +449,7 @@ function renderDetails(n){
     ${careers.length? `<ul>${careers.map(s=>`<li><a href="#" data-nav="${s}">${s}</a></li>`).join('')}</ul>` : '<div class="muted">None</div>'}
   `;
 
-  // attach intra-details navigation
+  // intra-details navigation
   neigh.querySelectorAll('[data-nav]').forEach(a=>{
     a.onclick = (ev)=>{ ev.preventDefault(); focusNode(a.dataset.nav, true); };
   });
@@ -464,55 +479,36 @@ function renderDetails(n){
         learn.appendChild(li);
       });
     } else {
-      learn.innerHTML = `<div class="muted">No linked skills yet. Add links in the DATA section.</div>`;
+      learn.innerHTML = `<div class="muted">No linked skills yet. Add links in the data.</div>`;
     }
   }
 }
 
-/* Filters -> affect list + graph visibility */
+/* =========================
+   Graph filtering
+   ========================= */
 function filterGraph(){
-  nodeSel.style('display', d=>{
-    return passesFilters(d) ? null : 'none';
-  });
+  nodeSel.style('display', d=> passesFilters(d) ? null : 'none');
   linkSel.style('display', l=>{
-    const s = (l.source.id? l.source : DATA.nodes.find(n=>n.id===l.source));
-    const t = (l.target.id? l.target : DATA.nodes.find(n=>n.id===l.target));
+    const s = typeof l.source === 'string' ? DATA.nodes.find(n=>n.id===l.source) : l.source;
+    const t = typeof l.target === 'string' ? DATA.nodes.find(n=>n.id===l.target) : l.target;
     return (passesFilters(s) && passesFilters(t)) ? null : 'none';
   });
 }
 
-/* Layout toggle: Force <-> Bipartite */
-document.getElementById('layoutForce').onclick = ()=> {
-  sim.alphaTarget(0.3).restart();
-  sim.force('x', null).force('y', null);
-  setTimeout(()=> sim.alphaTarget(0), 500);
-};
-document.getElementById('layoutBip').onclick = ()=> {
-  const xScale = d3.scalePoint().domain(['skill','career']).range([100, W-100]);
-  const yScale = d3.scalePoint().domain([...new Set(DATA.nodes.map(n=>n.group))]).range([80, H-80]);
-  sim.force('x', d3.forceX(d => xScale(d.type)).strength(0.5))
-     .force('y', d3.forceY(d => yScale(d.group)).strength(0.3))
-     .alpha(0.5)
-     .restart();
-};
-
-/* Drag */
+/* =========================
+   Drag handlers
+   ========================= */
 function dragstarted(event,d){ if(!event.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; }
 function dragged(event,d){ d.fx=event.x; d.fy=event.y; }
 function dragended(event,d){ if(!event.active) sim.alphaTarget(0); d.fx=null; d.fy=null; }
+function getTransform(){ return d3.zoomTransform(svg.node()); }
+function setTransform(t){ svg.transition().duration(250).call(zoom.transform, t); }
+document.getElementById('zoomIn').onclick  = ()=> setTransform(getTransform().scale(1.2));
+document.getElementById('zoomOut').onclick = ()=> setTransform(getTransform().scale(0.8));
+document.getElementById('zoomReset').onclick = ()=> setTransform(d3.zoomIdentity);
 
-/* Resize */
-window.addEventListener('resize', ()=>{
-  const W2 = document.getElementById('viz').clientWidth;
-  const H2 = document.getElementById('viz').clientHeight;
-  svg.attr('width', W2).attr('height', H2);
-  sim.force('center', d3.forceCenter(W2/2, H2/2)).alpha(0.3).restart();
-});
 
-/* Hook search enter */
-q.addEventListener('keydown', e=>{ if(e.key==='Enter') renderList(); });
-
-/* Done */
 </script>
 </body>
 </html>
